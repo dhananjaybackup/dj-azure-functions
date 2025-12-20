@@ -25,4 +25,4 @@ jobs:
         run: dotnet build DJFunctions/DJFunctions.csproj --configuration Release
 
       - name: Publish
-        run: dotnet
+        run: dotnet publish DJFunctions/DJFunctions.csproj -c Release -o ./publish
