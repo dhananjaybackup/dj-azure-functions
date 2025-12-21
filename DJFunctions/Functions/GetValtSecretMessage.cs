@@ -21,7 +21,7 @@ public class GetValtSecretMessage
         var secret = Environment.GetEnvironmentVariable("AppMessage");
 
         var response = req.CreateResponse(HttpStatusCode.OK);
-        response.WriteString($"Message from Key Vault deployment: {secret}");
+        response.WriteString($"Message from Key Vault deployment changes deployed and published automatically: {secret}");
         return response;
     }
 }
