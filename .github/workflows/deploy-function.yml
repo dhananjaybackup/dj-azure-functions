@@ -26,3 +26,11 @@ jobs:
 
       - name: Publish
         run: dotnet publish DJFunctions/DJFunctions.csproj -c Release -o ./publish
+
+      # 🔥 DEPLOY TO AZURE 🔥
+      - name: Deploy to Azure Functions
+        uses: Azure/functions-action@v1
+        with:
+          app-name: dj-functionapp-msi-fpe4g5bjaxe4ctdr
+          package: ./publish
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
