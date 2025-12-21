@@ -34,3 +34,4 @@ jobs:
           app-name: dj-functionapp-msi-fpe4g5bjaxe4ctdr
           package: ./publish
           publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+          respect-pom-xml: false
