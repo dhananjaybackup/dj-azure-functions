@@ -2,7 +2,8 @@ using DJFunctions.Models;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-
+using Microsoft.DurableTask.Client;
+using Microsoft.Azure.Functions.Worker.Extensions.DurableTask;
 namespace DJFunctions;
 
 public class ProcessUserFromQueue
@@ -14,6 +15,16 @@ public class ProcessUserFromQueue
         _logger = logger;
     }
 
+    /* Process messages from the "user-queue" queue
+     * and insert them into the "Users" table.
+        uncomment this section to enable the function
+        now below code we are moving for durable function.     
+only using DJFunctions.Models;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
+using System.Text.Json;
+namespace are required.
+    
     [Function("ProcessUserFromQueue")]
     [TableOutput("Users")]
     public UserEntity Run(
@@ -29,4 +40,25 @@ public class ProcessUserFromQueue
 
         return user;
     }
+ */
+ 
+/* Durable Function implementation */
+
+[Function("ProcessUserFromQueue")]
+public async Task Run(
+    [QueueTrigger("user-queue")] string message,
+    [DurableClient] DurableTaskClient client,
+    FunctionContext context)
+{
+    var logger = context.GetLogger("ProcessUserFromQueue");
+
+    string instanceId =
+        await client.ScheduleNewOrchestrationInstanceAsync(
+            "UserOrchestrator",
+            message);
+
+    logger.LogInformation(
+        "Started orchestration with InstanceId: {InstanceId}", instanceId);
+}
+  
 }
