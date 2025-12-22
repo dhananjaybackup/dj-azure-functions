@@ -19,6 +19,6 @@ public class BlobTrigger1
     {
         using var blobStreamReader = new StreamReader(stream);
         var content = await blobStreamReader.ReadToEndAsync();
-        _logger.LogInformation("C# Blob trigger function Processed blob\n Name: {name} \n Data: {content}", name, content);
+        _logger.LogInformation("C# Blob trigger function Processed blob\n Name : {name} \n Data: {content}", name, content);
     }
 }
