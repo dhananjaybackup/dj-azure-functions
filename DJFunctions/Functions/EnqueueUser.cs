@@ -36,6 +36,7 @@ public async Task<string> Run(
     _logger.LogWarning("🔥 EnqueueUser triggered");
     // var user = await JsonSerializer.DeserializeAsync<UserEntity>(req.Body);
     var user = await JsonSerializer.DeserializeAsync<UserDto>(req.Body);
+    Console.WriteLine("User received: " + user.Name);
     // The string returned here is automatically added to the queue
     return JsonSerializer.Serialize(user);
 }
