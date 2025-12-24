@@ -34,8 +34,8 @@ public async Task<string> Run(
     [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
 {
     _logger.LogWarning("🔥 EnqueueUser triggered");
-    var user = await JsonSerializer.DeserializeAsync<UserEntity>(req.Body);
-    
+    // var user = await JsonSerializer.DeserializeAsync<UserEntity>(req.Body);
+    var user = await JsonSerializer.DeserializeAsync<UserDto>(req.Body);
     // The string returned here is automatically added to the queue
     return JsonSerializer.Serialize(user);
 }

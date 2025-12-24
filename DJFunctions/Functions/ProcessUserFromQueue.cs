@@ -41,32 +41,33 @@ namespace are required.
         return user;
     }
  */
- 
-/* Durable Function implementation */
 
-[Function("ProcessUserFromQueue")]
-public async Task Run(
-    [QueueTrigger("user-queue")] string message,
-    [DurableClient] DurableTaskClient client,
-    FunctionContext context)
-{
-    var logger = context.GetLogger("ProcessUserFromQueue");
+    /* Durable Function implementation */
 
-// Temporary comment out to test durable function
-/*
-    string instanceId =
-        await client.ScheduleNewOrchestrationInstanceAsync(
-            "UserOrchestrator",
-            message);
-*/
-  // For durable function with retry policy  
-    string instanceId =
-        await client.ScheduleNewOrchestrationInstanceAsync(
+    [Function("ProcessUserFromQueue")]
+    public async Task Run(
+        [QueueTrigger("user-queue")] string message,
+        [DurableClient] DurableTaskClient client,
+        FunctionContext context)
+    {
+        var logger = context.GetLogger("ProcessUserFromQueue");
+
+        // Temporary comment out to test durable function
+        /*
+            string instanceId =
+                await client.ScheduleNewOrchestrationInstanceAsync(
+                    "UserOrchestrator",
+                    message);
+        */
+        // For durable function with retry policy  
+        var user = JsonSerializer.Deserialize<UserDto>(message);
+
+       string instanceId = await client.ScheduleNewOrchestrationInstanceAsync(
             "UserOnboardingOrchestrator",
-            message);
+            user);
 
-    logger.LogInformation(
-        "Started orchestration with InstanceId: {InstanceId}", instanceId);
-}
-  
+        logger.LogInformation(
+            "Started orchestration with InstanceId: {InstanceId}", instanceId);
+    }
+
 }

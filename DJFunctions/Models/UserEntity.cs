@@ -14,3 +14,11 @@ public class UserEntity : ITableEntity
     public DateTimeOffset? Timestamp { get; set; }
     public ETag ETag { get; set; }
 }
+
+public class UserDto
+{
+    public string PartitionKey { get; set; }
+    public string RowKey { get; set; }
+    public string Name { get; set; }
+    public string Email { get; set; }
+}

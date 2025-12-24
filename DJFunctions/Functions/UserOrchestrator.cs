@@ -32,7 +32,7 @@ public class UserOrchestrator
     public async Task Run(
      [OrchestrationTrigger] TaskOrchestrationContext context)
     {
-        var user = context.GetInput<UserEntity>();
+        var user = context.GetInput<UserDto>();
 
         var retryPolicy = new RetryPolicy(3, TimeSpan.FromSeconds(5));
         var taskOptions = new TaskOptions(retryPolicy);
