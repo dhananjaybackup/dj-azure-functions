@@ -52,9 +52,17 @@ public async Task Run(
 {
     var logger = context.GetLogger("ProcessUserFromQueue");
 
+// Temporary comment out to test durable function
+/*
     string instanceId =
         await client.ScheduleNewOrchestrationInstanceAsync(
             "UserOrchestrator",
+            message);
+*/
+  // For durable function with retry policy  
+    string instanceId =
+        await client.ScheduleNewOrchestrationInstanceAsync(
+            "UserOnboardingOrchestrator",
             message);
 
     logger.LogInformation(
