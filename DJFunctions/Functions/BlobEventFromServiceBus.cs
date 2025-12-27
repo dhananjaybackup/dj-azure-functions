@@ -2,6 +2,7 @@ using System.Text.Json;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using Microsoft.DurableTask.Client;
 namespace DJFunctions;
 
 public class BlobEventFromServiceBus
@@ -36,36 +37,52 @@ public class BlobEventFromServiceBus
         */
 
     // For poison message handling DLQ
+    /*
+    This will log into DL
+     // uncomment when needed
 
+        [Function("BlobEventFromServiceBus")]
+        public async Task Run(
+        [ServiceBusTrigger("blob-events", "durable-workers", Connection = "ServiceBusConnection")]
+        ServiceBusReceivedMessage message,
+        ServiceBusMessageActions actions,
+        ILogger logger)
+        {
+            try
+            {
+                var body = message.Body.ToString();
+
+                logger.LogInformation("Received: {body}", body);
+
+                var json = JsonDocument.Parse(body); // will fail for bad payload
+
+                logger.LogInformation("JSON parsed successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Poison message detected");
+
+                var props = new Dictionary<string, object>
+        {
+            { "Reason", "InvalidPayload" },
+            { "Exception", ex.Message }
+        };
+
+                await actions.DeadLetterMessageAsync(message, props);
+            }
+        }
+        */
     [Function("BlobEventFromServiceBus")]
     public async Task Run(
     [ServiceBusTrigger("blob-events", "durable-workers", Connection = "ServiceBusConnection")]
     ServiceBusReceivedMessage message,
-    ServiceBusMessageActions actions,
-    ILogger logger)
+    [DurableClient] DurableTaskClient client)
     {
-        try
-        {
-            var body = message.Body.ToString();
+        var body = message.Body.ToString();
 
-            logger.LogInformation("Received: {body}", body);
-
-            var json = JsonDocument.Parse(body); // will fail for bad payload
-
-            logger.LogInformation("JSON parsed successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Poison message detected");
-
-            var props = new Dictionary<string, object>
-    {
-        { "Reason", "InvalidPayload" },
-        { "Exception", ex.Message }
-    };
-
-            await actions.DeadLetterMessageAsync(message, props);
-        }
+        await client.ScheduleNewOrchestrationInstanceAsync(
+            "BlobOrchestrator",
+            body);
     }
 
 }
