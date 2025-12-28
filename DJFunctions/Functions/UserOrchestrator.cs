@@ -14,20 +14,21 @@ public class UserOrchestrator
         _logger = logger;
     }
     // 1. Temporary comment out to test durable function
-/*
-    [Function("UserOrchestrator")]
-    public async Task RunOrchestrator(
-        [OrchestrationTrigger] TaskOrchestrationContext context)
-    {
-        var userJson = context.GetInput<string>();
+    /*
+        [Function("UserOrchestrator")]
+        public async Task RunOrchestrator(
+            [OrchestrationTrigger] TaskOrchestrationContext context)
+        {
+            var userJson = context.GetInput<string>();
 
-        await context.CallActivityAsync("ValidateUserActivity", userJson);
-        await context.CallActivityAsync("InsertUserActivity", userJson);
-        await context.CallActivityAsync("GetVaultSecretActivity", null);
-        await context.CallActivityAsync("SendNotificationActivity", userJson);
-    }
-*/
+            await context.CallActivityAsync("ValidateUserActivity", userJson);
+            await context.CallActivityAsync("InsertUserActivity", userJson);
+            await context.CallActivityAsync("GetVaultSecretActivity", null);
+            await context.CallActivityAsync("SendNotificationActivity", userJson);
+        }
+    */
     // 2. For durable function with retry policy 
+    /*
     [Function("UserOnboardingOrchestrator")]
     public async Task Run(
      [OrchestrationTrigger] TaskOrchestrationContext context)
@@ -40,5 +41,35 @@ public class UserOrchestrator
         await context.CallActivityAsync("ValidateUserActivity", user, taskOptions);
         await context.CallActivityAsync("SaveUserActivity", user, taskOptions);
     }
+    */
+    // 3. Fan-Out / Fan-In distributed processing
+    [Function("UserOnboardingOrchestrator")]
+    public async Task Run(
+    [OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        var user = context.GetInput<UserDto>();
+        var retryPolicy = new RetryPolicy(3, TimeSpan.FromSeconds(5));
+        var taskOptions = new TaskOptions(retryPolicy);
+        try
+        {
+            // FAN-OUT (run in parallel)
+            var validateTask = context.CallActivityAsync<bool>("ValidateUser", user);
+            var enrichTask = context.CallActivityAsync<UserDto>("EnrichUser", user);
+            var saveTask = context.CallActivityAsync("SaveUser", user);
+            // FAN-IN (wait for all to complete)
+            await Task.WhenAll(validateTask, saveTask);
+        }
+        catch (Exception ex)
+        {
+            await context.CallActivityAsync("SendToDlqActivity", new DlqMessage
+            {
+                User = user,
+                Reason = ex.Message,
+                FailedAt = context.CurrentUtcDateTime,
+                OrchestrationId = context.InstanceId
+            });
+        }
+    }
+
 
 }
