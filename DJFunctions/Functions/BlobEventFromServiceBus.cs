@@ -81,7 +81,7 @@ public class BlobEventFromServiceBus
         var body = message.Body.ToString();
 
         await client.ScheduleNewOrchestrationInstanceAsync(
-            "BlobOrchestrator",
+            "UserOnboardingOrchestrator",
             body);
     }
 
