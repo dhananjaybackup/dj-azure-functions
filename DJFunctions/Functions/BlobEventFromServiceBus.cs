@@ -3,6 +3,7 @@ using Azure.Messaging.ServiceBus;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.DurableTask.Client;
+using DJFunctions.Models;
 namespace DJFunctions;
 
 public class BlobEventFromServiceBus
@@ -78,11 +79,27 @@ public class BlobEventFromServiceBus
     ServiceBusReceivedMessage message,
     [DurableClient] DurableTaskClient client)
     {
-        var body = message.Body.ToString();
-
-        await client.ScheduleNewOrchestrationInstanceAsync(
-            "UserOnboardingOrchestrator",
-            body);
+        try
+        {
+            var body = message.Body.ToString();
+            var user = JsonSerializer.Deserialize<UserDto>(body);
+            await client.ScheduleNewOrchestrationInstanceAsync(
+                "UserOnboardingOrchestrator",
+                user);
+        }
+        catch (Exception ex)
+        {
+            // Message is corrupt → workflow must never see it
+            await client.ScheduleNewOrchestrationInstanceAsync(
+                "SendToDlqOrchestrator",
+                new DlqMessage
+                {
+                    UserName = "UNKNOWN",
+                    Reason = "Invalid ingress payload: " + ex.Message,
+                    FailedAt = DateTime.UtcNow,
+                    OrchestrationId = "INGRESS"
+                });
+        }
     }
 
 }
