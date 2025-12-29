@@ -53,9 +53,8 @@ public class UserOrchestrator
         try
         {
             // FAN-OUT (run in parallel)
-            var validateTask = context.CallActivityAsync<bool>("ValidateUser", user);
-            var enrichTask = context.CallActivityAsync<UserDto>("EnrichUser", user);
-            var saveTask = context.CallActivityAsync("SaveUser", user);
+            var validateTask = context.CallActivityAsync<bool>("ValidateUserActivity", user);
+            var saveTask = context.CallActivityAsync("SaveUserActivity", user);
             // FAN-IN (wait for all to complete)
             await Task.WhenAll(validateTask, saveTask);
         }
@@ -63,7 +62,7 @@ public class UserOrchestrator
         {
             await context.CallActivityAsync("SendToDlqActivity", new DlqMessage
             {
-                User = user,
+                UserName = user.Name,
                 Reason = ex.Message,
                 FailedAt = context.CurrentUtcDateTime,
                 OrchestrationId = context.InstanceId
