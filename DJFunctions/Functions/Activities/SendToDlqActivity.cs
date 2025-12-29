@@ -3,6 +3,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Storage;
 using DJFunctions.Models;
 using Azure.Data.Tables;
+using Azure.Identity;
 
 namespace DJFunctions;
 
@@ -16,15 +17,27 @@ public class SendToDlqActivity
     {
         var logger = context.GetLogger("SendToDlqActivity");
 
-        var connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+        var accountName = Environment.GetEnvironmentVariable("StorageAccountName");
 
-        var service = new TableServiceClient(connectionString);
+        var service = new TableServiceClient(
+            new Uri($"https://{accountName}.table.core.windows.net"),
+            new DefaultAzureCredential());
+
         var table = service.GetTableClient("WorkflowDLQ");
-
         await table.CreateIfNotExistsAsync();
-        await table.AddEntityAsync(dlq);
 
-        logger.LogError("User {UserId} sent to DLQ. Reason: {Error}",
-            dlq.UserId, dlq.Reason);
+        var entity = new TableEntity(
+            partitionKey: dlq.OrchestrationId,
+            rowKey: Guid.NewGuid().ToString())
+        {
+            ["UserName"] = dlq.UserName,
+            ["Reason"] = dlq.Reason,
+            ["FailedAt"] = dlq.FailedAt
+        };
+
+        await table.AddEntityAsync(entity);
+
+        logger.LogError("User {User} sent to DLQ. Reason: {Reason}",
+            dlq.UserName, dlq.Reason);
     }
 }
