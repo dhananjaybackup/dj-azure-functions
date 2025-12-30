@@ -63,11 +63,7 @@ public class UserOrchestrator
             // FAN-OUT (run in parallel)
             var validateTask = context.CallActivityAsync<bool>("ValidateUserActivity", user);
             var saveTask = context.CallActivityAsync("SaveUserActivity", user);
-            await context.CallActivityAsync("SendWelcomeEmail", new
-            {
-                user.UserId,
-                InstanceId = instanceId
-            });
+            await context.CallActivityAsync("SendWelcomeEmail", input);
             // FAN-IN (wait for all to complete)
             await Task.WhenAll(validateTask, saveTask);
         }
@@ -75,10 +71,11 @@ public class UserOrchestrator
         {
             await context.CallActivityAsync("SendToDlqActivity", new DlqMessage
             {
+                UserId = user.UserId,
                 UserName = user.Name,
                 Reason = ex.Message,
                 FailedAt = context.CurrentUtcDateTime,
-                OrchestrationId = context.InstanceId
+                OrchestrationId = instanceId
             });
         }
     }
