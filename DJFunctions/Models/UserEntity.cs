@@ -7,6 +7,7 @@ public class UserEntity : ITableEntity
 {
    public string PartitionKey { get; set; } = "USER";
     public string RowKey { get; set; }  // Remove the default value
+    public string UserId { get; set; }
 
     public string Name { get; set; }
     public string Email { get; set; }
@@ -19,6 +20,8 @@ public class UserDto
 {
     public string PartitionKey { get; set; }
     public string RowKey { get; set; }
+
+    public string UserId { get; set; }
     public string Name { get; set; }
     public string Email { get; set; }
 }

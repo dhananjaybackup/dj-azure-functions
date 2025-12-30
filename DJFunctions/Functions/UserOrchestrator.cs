@@ -50,11 +50,24 @@ public class UserOrchestrator
         var user = context.GetInput<UserDto>();
         var retryPolicy = new RetryPolicy(3, TimeSpan.FromSeconds(5));
         var taskOptions = new TaskOptions(retryPolicy);
+        var instanceId = context.InstanceId;
+        var input = new ActivityInput
+        {
+            UserId = user.UserId,
+            UserName = user.Name,
+            InstanceId = instanceId
+        };
+
         try
         {
             // FAN-OUT (run in parallel)
             var validateTask = context.CallActivityAsync<bool>("ValidateUserActivity", user);
             var saveTask = context.CallActivityAsync("SaveUserActivity", user);
+            await context.CallActivityAsync("SendWelcomeEmail", new
+            {
+                user.UserId,
+                InstanceId = instanceId
+            });
             // FAN-IN (wait for all to complete)
             await Task.WhenAll(validateTask, saveTask);
         }

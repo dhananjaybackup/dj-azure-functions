@@ -4,6 +4,8 @@ using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using Microsoft.DurableTask.Client;
 using Microsoft.Azure.Functions.Worker.Extensions.DurableTask;
+using Azure.Storage.Queues.Models;
+using Microsoft.DurableTask;
 namespace DJFunctions;
 
 public class ProcessUserFromQueue
@@ -42,7 +44,9 @@ namespace are required.
     }
  */
 
-    /* Durable Function implementation */
+    /* Durable Function implementation to process messages from the "user-queue" queue
+     and start a new orchestration instance for each message.
+    
 
     [Function("ProcessUserFromQueue")]
     public async Task Run(
@@ -53,12 +57,12 @@ namespace are required.
         var logger = context.GetLogger("ProcessUserFromQueue");
 
         // Temporary comment out to test durable function
-        /*
-            string instanceId =
-                await client.ScheduleNewOrchestrationInstanceAsync(
-                    "UserOrchestrator",
-                    message);
-        */
+        
+            // string instanceId =
+            //     await client.ScheduleNewOrchestrationInstanceAsync(
+            //         "UserOrchestrator",
+            //         message);
+        
         // For durable function with retry policy  
         var user = JsonSerializer.Deserialize<UserDto>(message);
 
@@ -69,5 +73,52 @@ namespace are required.
         logger.LogInformation(
             "Started orchestration with InstanceId: {InstanceId}", instanceId);
     }
+    */
+    /* Correct, production-grade version
+    only one workflow per user
+    check if workflow already exists
+    */
+    [Function("ProcessUserFromQueue")]
+    public async Task Run(
+    [QueueTrigger("user-queue")] QueueMessage queueMessage,
+    [DurableClient] DurableTaskClient client,
+    FunctionContext context)
+    {
+        var logger = context.GetLogger("ProcessUserFromQueue");
+
+        var body = queueMessage.MessageText;
+        var user = JsonSerializer.Deserialize<UserDto>(body);
+
+        // 🔑 One user = one deterministic workflow
+        var instanceId = $"user-{user.UserId}";
+
+        // Prevent duplicate workflows
+        var existing = await client.GetInstanceAsync(instanceId);
+        if (existing != null)
+        {
+            logger.LogWarning(
+                "Workflow already exists | User={UserId} | MessageId={MessageId} | InstanceId={InstanceId}",
+                user.UserId,
+                queueMessage.MessageId,
+                instanceId);
+            return;
+        }
+
+        await client.ScheduleNewOrchestrationInstanceAsync(
+            "UserOnboardingOrchestrator",
+            user,
+            new StartOrchestrationOptions
+            {
+                InstanceId = instanceId
+            });
+
+        logger.LogInformation(
+            "Workflow started | User={UserId} | MessageId={MessageId} | InstanceId={InstanceId} | Dequeue={Dequeue}",
+            user.UserId,
+            queueMessage.MessageId,
+            instanceId,
+            queueMessage.DequeueCount);
+    }
+
 
 }
