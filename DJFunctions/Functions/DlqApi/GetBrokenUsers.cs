@@ -11,10 +11,10 @@ public class GetBrokenUsers
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "dlq/users")]
         HttpRequestData req)
     {
-        var connection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
-        var service = new TableServiceClient(connection);
-        var table = service.GetTableClient("WorkflowDLQ");
-
+        // var connection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+        // var service = new TableServiceClient(connection);
+        // var table = service.GetTableClient("WorkflowDLQ");
+        var table = DlqTableFactory.GetDlqTable();
         // LEGAL Azure Table scan
         var rows = table.Query<DlqMessage>(
             x => x.PartitionKey.CompareTo("user-") >= 0
