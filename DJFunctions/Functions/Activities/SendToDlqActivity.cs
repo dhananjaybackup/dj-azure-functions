@@ -30,7 +30,9 @@ public class SendToDlqActivity
             partitionKey: dlq.OrchestrationId,
             rowKey: Guid.NewGuid().ToString())
         {
-            ["UserName"] = dlq.UserName,
+            ["UserName"] = string.IsNullOrWhiteSpace(dlq.UserName)
+    ? "UNKNOWN"
+    : dlq.UserName,
             ["Reason"] = dlq.Reason,
             ["FailedAt"] = dlq.FailedAt
         };
