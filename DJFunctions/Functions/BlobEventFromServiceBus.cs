@@ -4,6 +4,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.DurableTask.Client;
 using DJFunctions.Models;
+using Microsoft.DurableTask;
 namespace DJFunctions;
 
 public class BlobEventFromServiceBus
@@ -75,30 +76,58 @@ public class BlobEventFromServiceBus
         */
     [Function("BlobEventFromServiceBus")]
     public async Task Run(
-    [ServiceBusTrigger("blob-events", "durable-workers", Connection = "ServiceBusConnection")]
+     [ServiceBusTrigger("blob-events", "durable-workers", Connection = "ServiceBusConnection")]
     ServiceBusReceivedMessage message,
-    [DurableClient] DurableTaskClient client)
+     ServiceBusMessageActions actions,
+     [DurableClient] DurableTaskClient client)
     {
+        var deliveryCount = message.DeliveryCount;
+        var messageId = message.MessageId;
+throw new Exception("🔥 Simulated corruption");
         try
         {
+            // 1️⃣ Poison detection
+            if (deliveryCount >= 5)
+            {
+                await client.ScheduleNewOrchestrationInstanceAsync(
+                    "SendToDlqOrchestrator",
+                    new DlqMessage
+                    {
+                        UserId = messageId,
+                        UserName = "UNKNOWN",
+                        Reason = $"Poison message after {deliveryCount} retries",
+                        FailedAt = DateTime.UtcNow,
+                        OrchestrationId = "INGRESS"
+                    });
+
+                await actions.DeadLetterMessageAsync(message);
+                return;
+            }
+
+            // 2️⃣ Deserialize payload
             var body = message.Body.ToString();
             var user = JsonSerializer.Deserialize<UserDto>(body);
+
+            // 3️⃣ Idempotent instance id (exactly-once)
+            var instanceId = $"user-{messageId}";
+
+            // 4️⃣ Start or resume workflow
             await client.ScheduleNewOrchestrationInstanceAsync(
-                "UserOnboardingOrchestrator",
-                user);
+     "UserOnboardingOrchestrator",
+     user,
+     new StartOrchestrationOptions
+     {
+         InstanceId = instanceId
+     });
+
+            // 5️⃣ Mark message as processed
+            await actions.CompleteMessageAsync(message);
         }
         catch (Exception ex)
         {
-            // Message is corrupt → workflow must never see it
-            await client.ScheduleNewOrchestrationInstanceAsync(
-                "SendToDlqOrchestrator",
-                new DlqMessage
-                {
-                    UserName = "UNKNOWN",
-                    Reason = "Invalid ingress payload: " + ex.Message,
-                    FailedAt = DateTime.UtcNow,
-                    OrchestrationId = "INGRESS"
-                });
+            // Let Service Bus retry (increase DeliveryCount)
+            await actions.AbandonMessageAsync(message);
+            throw;
         }
     }
 
