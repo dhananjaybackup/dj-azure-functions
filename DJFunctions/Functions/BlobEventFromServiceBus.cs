@@ -76,17 +76,17 @@ public class BlobEventFromServiceBus
         */
     [Function("BlobEventFromServiceBus")]
     public async Task Run(
-     [ServiceBusTrigger("blob-events", "durable-workers", Connection = "ServiceBusConnection")]
+    [ServiceBusTrigger("blob-events", "durable-workers", Connection = "ServiceBusConnection")]
     ServiceBusReceivedMessage message,
-     ServiceBusMessageActions actions,
-     [DurableClient] DurableTaskClient client)
+    ServiceBusMessageActions actions,
+    [DurableClient] DurableTaskClient client)
     {
         var deliveryCount = message.DeliveryCount;
         var messageId = message.MessageId;
-throw new Exception("🔥 Simulated corruption");
+
         try
         {
-            // 1️⃣ Poison detection
+            // 1️⃣ Poison detection FIRST
             if (deliveryCount >= 5)
             {
                 await client.ScheduleNewOrchestrationInstanceAsync(
@@ -104,28 +104,31 @@ throw new Exception("🔥 Simulated corruption");
                 return;
             }
 
-            // 2️⃣ Deserialize payload
-            var body = message.Body.ToString();
-            var user = JsonSerializer.Deserialize<UserDto>(body);
+            // 2️⃣ Simulate failure (remove this later)
+            if (message.ApplicationProperties.TryGetValue("SimulateError", out var v)
+                && v?.ToString() == "true")
+            {
+                throw new Exception("🔥 Simulated corruption");
+            }
 
-            // 3️⃣ Idempotent instance id (exactly-once)
+            // 3️⃣ Deserialize payload
+            var body = message.Body.ToString();
+            var user = JsonSerializer.Deserialize<UserDto>(body)!;
+
+            // 4️⃣ Exactly-once instance id
             var instanceId = $"user-{messageId}";
 
-            // 4️⃣ Start or resume workflow
+            // 5️⃣ Start or resume workflow
             await client.ScheduleNewOrchestrationInstanceAsync(
-     "UserOnboardingOrchestrator",
-     user,
-     new StartOrchestrationOptions
-     {
-         InstanceId = instanceId
-     });
+                "UserOnboardingOrchestrator",
+                user,
+                new StartOrchestrationOptions { InstanceId = instanceId });
 
-            // 5️⃣ Mark message as processed
+            // 6️⃣ Complete message
             await actions.CompleteMessageAsync(message);
         }
-        catch (Exception ex)
+        catch
         {
-            // Let Service Bus retry (increase DeliveryCount)
             await actions.AbandonMessageAsync(message);
             throw;
         }
