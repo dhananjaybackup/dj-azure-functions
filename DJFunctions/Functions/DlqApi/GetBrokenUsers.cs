@@ -11,9 +11,6 @@ public class GetBrokenUsers
         [HttpTrigger(AuthorizationLevel.Function, "get", Route = "dlq/users")]
         HttpRequestData req)
     {
-        // var connection = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
-        // var service = new TableServiceClient(connection);
-        // var table = service.GetTableClient("WorkflowDLQ");
         var table = DlqTableFactory.GetDlqTable();
         // LEGAL Azure Table scan
         var rows = table.Query<DlqMessage>(
@@ -25,7 +22,7 @@ public class GetBrokenUsers
      .Select(g => new
      {
          InstanceId = g.Key,
-         User = g.First().UserName ?? "UNKNOWN",
+         User = string.IsNullOrWhiteSpace(g.First().UserName)? "UNKNOWN": g.First().UserName,
          Failures = g.Count(),
          LastError = g
              .OrderByDescending(x => x.FailedAt)
