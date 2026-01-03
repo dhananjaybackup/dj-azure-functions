@@ -21,17 +21,19 @@ public class GetBrokenUsers
         ).ToList();
 
         var users = rows
-            .GroupBy(x => x.PartitionKey)   // Durable InstanceId
-            .Select(g => new
-            {
-                InstanceId = g.Key,
-                User = g.First().UserName,
-                Failures = g.Count(),
-                LastError = g.OrderByDescending(x => x.FailedAt).First().Reason,
-                LastTime = g.Max(x => x.FailedAt)
-            })
-            .OrderByDescending(x => x.LastTime)
-            .ToList();
+     .GroupBy(x => x.PartitionKey)
+     .Select(g => new
+     {
+         InstanceId = g.Key,
+         User = g.First().UserName ?? "UNKNOWN",
+         Failures = g.Count(),
+         LastError = g
+             .OrderByDescending(x => x.FailedAt)
+             .First().Reason ?? "Unknown failure",
+         LastTime = g.Max(x => x.FailedAt)
+     })
+     .OrderByDescending(x => x.LastTime)
+     .ToList();
 
         var response = req.CreateResponse(HttpStatusCode.OK);
         await response.WriteAsJsonAsync(users);
