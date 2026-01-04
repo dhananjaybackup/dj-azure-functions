@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DLQ Dashboard</title>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    td, th { border: 1px solid #ccc; padding: 8px; }
+    tr:hover { background: #f5f5f5; cursor: pointer; }
+    button { padding: 6px 12px; }
+  </style>
+</head>
+<body>
+
+<h2>🔥 Broken Users</h2>
+
+<table id="users">
+  <thead>
+    <tr>
+      <th>User</th>
+      <th>Failures</th>
+      <th>Last Error</th>
+      <th>Last Time</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<hr>
+
+<h3>🧾 Failures</h3>
+<table id="failures">
+  <thead>
+    <tr>
+      <th>Time</th>
+      <th>Error</th>
+      <th>User</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+const BASE = "https://dj-functionapp-msi-fpe4g5bjaxe4ctdr.centralindia-01.azurewebsites.net";
+const CODE = "uoUDwaT_y6MTkA6r5MqNkmx1NYemYY72AVY_FKWVSqrkAzFuLal3Vg==";
+
+const API = `${BASE}/api/dlq`;
+loadUsers();
+
+function loadUsers() {
+ fetch(`${API}/users?code=${CODE}`)
+    .then(r => r.json())
+    .then(data => {
+      const body = document.querySelector("#users tbody");
+      body.innerHTML = "";
+      data.forEach(u => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${u.user}</td>
+          <td>${u.failures}</td>
+          <td>${u.lastError}</td>
+          <td>${new Date(u.lastTime).toLocaleString()}</td>
+        `;
+        tr.onclick = () => loadFailures(u.instanceId);
+        body.appendChild(tr);
+      });
+    });
+}
+
+function loadFailures(instanceId) {
+  fetch(`${API}/user/${instanceId}?code=${CODE}`)
+    .then(r => r.json())
+    .then(rows => {
+      const body = document.querySelector("#failures tbody");
+      body.innerHTML = "";
+      rows.forEach(f => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${new Date(f.failedAt).toLocaleString()}</td>
+          <td>${f.reason}</td>
+          <td>${f.userName}</td>
+          <td><button onclick="replay('${f.partitionKey}')">Replay</button></td>
+        `;
+        body.appendChild(tr);
+      });
+    });
+}
+
+function replay(instanceId) {
+  fetch(`${API}/replay/${instanceId}?code=${CODE}`, { method: "POST" })
+    .then(() => {
+      alert("Replay started");
+      loadUsers();
+    });
+}
+</script>
+
+</body>
+</html>
