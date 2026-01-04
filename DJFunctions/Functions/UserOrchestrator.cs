@@ -54,7 +54,7 @@ public class UserOrchestrator
         var input = new ActivityInput
         {
             UserId = user.UserId,
-            UserName = user.Name,
+            UserName = user.UserName,
             InstanceId = instanceId
         };
 
@@ -72,7 +72,7 @@ public class UserOrchestrator
             await context.CallActivityAsync("SendToDlqActivity", new DlqMessage
             {
                 UserId = user.UserId,
-                UserName = user.Name,
+                UserName = user.UserName,
                 Reason = ex.Message,
                 FailedAt = context.CurrentUtcDateTime,
                 OrchestrationId = instanceId

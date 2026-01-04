@@ -83,9 +83,12 @@ public class BlobEventFromServiceBus
     {
         var deliveryCount = message.DeliveryCount;
         var messageId = message.MessageId;
-
+        UserDto? user = null;
         try
         {
+            // Always try to deserialize first
+            var body = message.Body.ToString();
+            user = JsonSerializer.Deserialize<UserDto>(body);
             // 1️⃣ Poison detection FIRST
             if (deliveryCount >= 5)
             {
@@ -93,8 +96,8 @@ public class BlobEventFromServiceBus
                     "SendToDlqOrchestrator",
                     new DlqMessage
                     {
-                        UserId = messageId,
-                        UserName = "UNKNOWN",
+                        UserId = user?.UserId ?? messageId,
+                        UserName = user?.UserName ?? "UNKNOWN",
                         Reason = $"Poison message after {deliveryCount} retries",
                         FailedAt = DateTime.UtcNow,
                         OrchestrationId = "INGRESS"
@@ -110,10 +113,6 @@ public class BlobEventFromServiceBus
             {
                 throw new Exception("🔥 Simulated corruption");
             }
-
-            // 3️⃣ Deserialize payload
-            var body = message.Body.ToString();
-            var user = JsonSerializer.Deserialize<UserDto>(body)!;
 
             // 4️⃣ Exactly-once instance id
             var instanceId = $"user-{messageId}";

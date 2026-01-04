@@ -17,13 +17,15 @@ public class SendToDlqActivity
     {
         var logger = context.GetLogger("SendToDlqActivity");
 
-        var accountName = Environment.GetEnvironmentVariable("StorageAccountName");
+        // var accountName = Environment.GetEnvironmentVariable("StorageAccountName");
 
-        var service = new TableServiceClient(
-            new Uri($"https://{accountName}.table.core.windows.net"),
-            new DefaultAzureCredential());
+        // var service = new TableServiceClient(
+        //     new Uri($"https://{accountName}.table.core.windows.net"),
+        //     new DefaultAzureCredential());
 
-        var table = service.GetTableClient("WorkflowDLQ");
+        // var table = service.GetTableClient("WorkflowDLQ");
+        var table = DlqTableFactory.GetDlqTable();
+        
         await table.CreateIfNotExistsAsync();
 
         var entity = new TableEntity(
