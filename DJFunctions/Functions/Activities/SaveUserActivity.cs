@@ -17,12 +17,12 @@ public class SaveUserActivity
         {
             PartitionKey = user.PartitionKey,
             RowKey = user.RowKey,
-            Name = user.Name,
+            UserName = user.UserName,
             Email = user.Email
         };
         // Simulate failure for testing retry policy    
         // existing SaveUser logic
-        logger.LogInformation("Saving user {User} to database", entity.Name );
+        logger.LogInformation("Saving user {User} to database", entity.UserName );
         // throw new Exception("SQL Server down");
     }
 }

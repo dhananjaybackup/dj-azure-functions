@@ -31,7 +31,7 @@ public class InsertUser
             {
                 PartitionKey = "Users",
                 RowKey = Guid.NewGuid().ToString(),
-                Name = name,
+                UserName = name,
                 Email = email
             };
 

@@ -12,7 +12,7 @@ public class ValidateUserActivity
         FunctionContext context)
     {
         var logger = context.GetLogger("ValidateUserActivity");
-        logger.LogInformation("Validating user data {User}", user.Name);
+        logger.LogInformation("Validating user data {User}", user.UserName);
         if (string.IsNullOrEmpty(user.Email))
             throw new Exception("Email is required");
 

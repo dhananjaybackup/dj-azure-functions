@@ -26,7 +26,7 @@ public class ReplayUser
         var user = new UserDto
         {
             UserId = last.UserId,
-            Name = last.UserName
+            UserName = last.UserName
         };
 
         await durable.ScheduleNewOrchestrationInstanceAsync(
