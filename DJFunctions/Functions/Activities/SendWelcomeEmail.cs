@@ -18,7 +18,7 @@ public class SendWelcomeEmail
 
             // TODO: Call real email service here
             // await Task.Delay(500); // simulate SMTP
-            throw new Exception("SMTP server unreachable");
+          //  throw new Exception("SMTP server unreachable");
             logger.LogInformation(
                 "Email Success | User={UserId} | InstanceId={InstanceId}",
                 input.UserId,
