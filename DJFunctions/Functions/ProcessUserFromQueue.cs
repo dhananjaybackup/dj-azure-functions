@@ -77,7 +77,7 @@ namespace are required.
     /* Correct, production-grade version
     only one workflow per user
     check if workflow already exists
-    */
+   
     [Function("ProcessUserFromQueue")]
     public async Task Run(
     [QueueTrigger("user-queue")] QueueMessage queueMessage,
@@ -119,6 +119,65 @@ namespace are required.
             instanceId,
             queueMessage.DequeueCount);
     }
+ */
+ /* Final version with CorrelationContext
+    to track correlation across services
+    */
+    [Function("ProcessUserFromQueue")]
+    public async Task Run(
+    [QueueTrigger("user-queue")] QueueMessage queueMessage,
+    [DurableClient] DurableTaskClient client,
+    FunctionContext context)
+    {
+        
+        var logger = context.GetLogger("ProcessUserFromQueue");
 
+        var body = queueMessage.MessageText;
+        var user = JsonSerializer.Deserialize<UserDto>(body);
+
+        // 🔑 One user = one deterministic workflow
+        var instanceId = $"user-{user.UserId}";
+
+        // Prevent duplicate workflows
+        var existing = await client.GetInstanceAsync(instanceId);
+        if (existing != null)
+        {
+            logger.LogWarning(
+                "Workflow already exists | User={UserId} | MessageId={MessageId} | InstanceId={InstanceId}",
+                user.UserId,
+                queueMessage.MessageId,
+                instanceId);
+            return;
+        }
+
+        var correlationContext = new CorrelationContext
+        {
+            UserId = user.UserId,
+            UserName = user.UserName,
+            CorrelationId = Guid.NewGuid().ToString(),
+            OrchestrationId = instanceId
+        };
+
+        var orchestratorInput = new OrchestratorInput
+        {
+            User = user,
+            Context = correlationContext
+        };
+
+        await client.ScheduleNewOrchestrationInstanceAsync(
+            "UserOnboardingOrchestrator",
+            orchestratorInput,
+            new StartOrchestrationOptions
+            {
+                InstanceId = instanceId
+            });
+
+        logger.LogInformation(
+            "Workflow started | User={UserId} | MessageId={MessageId} | InstanceId={InstanceId} | Dequeue={Dequeue}",
+            user.UserId,
+            queueMessage.MessageId,
+            instanceId,
+            queueMessage.DequeueCount);
+    }
 
 }
