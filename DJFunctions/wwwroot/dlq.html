@@ -62,7 +62,7 @@ function loadUsers() {
           <td>${u.LastError}</td>
           <td>${new Date(u.LastTime).toLocaleString()}</td>
         `;
-        tr.onclick = () => loadFailures(u.instanceId);
+        tr.onclick = () => loadFailures(u.InstanceId);
         body.appendChild(tr);
       });
     });
@@ -77,10 +77,10 @@ function loadFailures(instanceId) {
       rows.forEach(f => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${new Date(f.LastTime).toLocaleString()}</td>
-          <td>${f.reason}</td>
-          <td>${f.userName}</td>
-          <td><button onclick="replay('${f.partitionKey}')">Replay</button></td>
+          <td>${new Date(f.FailedAt).toLocaleString()}</td>
+          <td>${f.Reason}</td>
+          <td>${f.UserName}</td>
+          <td><button onclick="replay('${f.PartitionKey}')">Replay</button></td>
         `;
         body.appendChild(tr);
       });
