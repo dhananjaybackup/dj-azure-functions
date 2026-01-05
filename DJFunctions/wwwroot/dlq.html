@@ -57,10 +57,10 @@ function loadUsers() {
       data.forEach(u => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${u.user}</td>
-          <td>${u.failures}</td>
-          <td>${u.lastError}</td>
-          <td>${new Date(u.lastTime).toLocaleString()}</td>
+         <td>${u.User}</td>
+          <td>${u.Failures}</td>
+          <td>${u.LastError}</td>
+          <td>${new Date(u.LastTime).toLocaleString()}</td>
         `;
         tr.onclick = () => loadFailures(u.instanceId);
         body.appendChild(tr);
@@ -77,7 +77,7 @@ function loadFailures(instanceId) {
       rows.forEach(f => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${new Date(f.failedAt).toLocaleString()}</td>
+          <td>${new Date(f.LastTime).toLocaleString()}</td>
           <td>${f.reason}</td>
           <td>${f.userName}</td>
           <td><button onclick="replay('${f.partitionKey}')">Replay</button></td>
