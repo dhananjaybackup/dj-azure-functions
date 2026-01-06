@@ -15,8 +15,8 @@ public class SaveUserActivity
         logger.LogInformation("Saving user to storage");
         var entity = new UserEntity
         {
-            PartitionKey = user.PartitionKey,
-            RowKey = user.RowKey,
+            PartitionKey = user.CorrelationId,
+            RowKey = user.UserId,
             UserName = user.UserName,
             Email = user.Email
         };

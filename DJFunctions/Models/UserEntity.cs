@@ -5,7 +5,7 @@ namespace DJFunctions.Models;
 
 public class UserEntity : ITableEntity
 {
-   public string PartitionKey { get; set; } = "USER";
+   public string PartitionKey { get; set; }
     public string RowKey { get; set; }  // Remove the default value
     public string UserId { get; set; }
 

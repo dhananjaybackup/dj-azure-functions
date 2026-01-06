@@ -21,7 +21,7 @@ public class SendToDlqActivity
         await table.CreateIfNotExistsAsync();
 
         var entity = new TableEntity(
-            partitionKey: dlq.UserId,              // 👈 USER is the partition
+            partitionKey: dlq.UserId,       // 👈 USER is the partition
             rowKey: dlq.RowKey)            // 👈 ONE ROW per workflow
         {
             ["UserName"] = string.IsNullOrWhiteSpace(dlq.UserName) ? "UNKNOWN" : dlq.UserName,
