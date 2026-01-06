@@ -17,31 +17,28 @@ public class SendToDlqActivity
     {
         var logger = context.GetLogger("SendToDlqActivity");
 
-        // var accountName = Environment.GetEnvironmentVariable("StorageAccountName");
-
-        // var service = new TableServiceClient(
-        //     new Uri($"https://{accountName}.table.core.windows.net"),
-        //     new DefaultAzureCredential());
-
-        // var table = service.GetTableClient("WorkflowDLQ");
         var table = DlqTableFactory.GetDlqTable();
-        
         await table.CreateIfNotExistsAsync();
 
         var entity = new TableEntity(
-            partitionKey: dlq.OrchestrationId,
-            rowKey: Guid.NewGuid().ToString())
+            partitionKey: dlq.UserId,              // 👈 USER is the partition
+            rowKey: dlq.RowKey)            // 👈 ONE ROW per workflow
         {
-            ["UserName"] = string.IsNullOrWhiteSpace(dlq.UserName)
-    ? "UNKNOWN"
-    : dlq.UserName,
-            ["Reason"] = dlq.Reason,
-            ["FailedAt"] = dlq.FailedAt
+            ["UserName"] = string.IsNullOrWhiteSpace(dlq.UserName) ? "UNKNOWN" : dlq.UserName,
+            ["CorrelationId"] = dlq.CorrelationId,
+            ["LastError"] = dlq.Reason,
+            ["FailedAt"] = dlq.FailedAt,
+            ["ReplayCount"] = 0,                   // 👈 BIRTH of replay tracking
+            ["Status"] = "Failed"
         };
 
-        await table.AddEntityAsync(entity);
+        await table.UpsertEntityAsync(entity);     // 👈 overwrite on repeated failures
 
-        logger.LogError("User {User} sent to DLQ. Reason: {Reason}",
-            dlq.UserName, dlq.Reason);
+        logger.LogError(
+            "User sent to DLQ | User={UserId} | Instance={InstanceId} | Reason={Reason}",
+            dlq.UserId,
+            dlq.RowKey,
+            dlq.Reason);
     }
+
 }

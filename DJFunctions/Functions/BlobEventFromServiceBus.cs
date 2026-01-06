@@ -100,7 +100,10 @@ public class BlobEventFromServiceBus
                         UserName = user?.UserName ?? "UNKNOWN",
                         Reason = $"Poison message after {deliveryCount} retries",
                         FailedAt = DateTime.UtcNow,
-                        OrchestrationId = "INGRESS"
+                        CorrelationId = message.CorrelationId,
+                        PartitionKey = user?.UserId ?? messageId,
+                        RowKey = messageId
+                        // OrchestrationId = "INGRESS"
                     });
 
                 await actions.DeadLetterMessageAsync(message);

@@ -71,11 +71,15 @@ public class UserOrchestrator
         {
             await context.CallActivityAsync("SendToDlqActivity", new DlqMessage
             {
+                PartitionKey = user.UserId,        // 👈 DLQ Partition
+                RowKey = instanceId,               // 👈 DLQ Row = Durable instance
+
                 UserId = user.UserId,
                 UserName = user.UserName,
+                // CorrelationId = ctx.Context.CorrelationId,
                 Reason = ex.Message,
                 FailedAt = context.CurrentUtcDateTime,
-                OrchestrationId = instanceId
+                ReplayCount = 0
             });
         }
     }
