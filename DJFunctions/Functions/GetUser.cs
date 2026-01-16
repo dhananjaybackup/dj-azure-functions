@@ -13,8 +13,9 @@ public class GetUser
     {
         _logger = loggerFactory.CreateLogger<GetUser>();
     }
+    // Get user by partition key and row key
     [Function("GetUser")]
-    public HttpResponseData Run(
+    public HttpResponseData Run( 
     [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData req,
 
     [TableInput(
