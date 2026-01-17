@@ -69,18 +69,29 @@ public class UserOrchestrator
         }
         catch (Exception ex)
         {
-            await context.CallActivityAsync("SendToDlqActivity", new DlqMessage
-            {
-                PartitionKey = user.UserId,        // 👈 DLQ Partition
-                RowKey = instanceId,               // 👈 DLQ Row = Durable instance
+            // await context.CallActivityAsync("SendToDlqActivity", new DlqMessage
+            // {
+            //     PartitionKey = user.UserId,        // 👈 DLQ Partition
+            //     RowKey = instanceId,               // 👈 DLQ Row = Durable instance
 
+            //     UserId = user.UserId,
+            //     UserName = user.UserName,
+            //     // CorrelationId = ctx.Context.CorrelationId,
+            //     Reason = ex.Message,
+            //     FailedAt = context.CurrentUtcDateTime,
+            //     ReplayCount = 0
+            // });
+            // changed for Cosmos DB DLQ
+            await context.CallActivityAsync("SendToDlqActivity", new CosmosDlqMessage
+            {
+                Id = $"{user.UserId}-{context.InstanceId}",
                 UserId = user.UserId,
                 UserName = user.UserName,
-                // CorrelationId = ctx.Context.CorrelationId,
                 Reason = ex.Message,
                 FailedAt = context.CurrentUtcDateTime,
                 ReplayCount = 0
             });
+            throw;
         }
     }
 

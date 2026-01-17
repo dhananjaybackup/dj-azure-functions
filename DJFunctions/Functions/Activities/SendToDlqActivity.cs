@@ -53,7 +53,7 @@ public class SendToDlqActivity
     Environment.GetEnvironmentVariable("CosmosConnection"));
 
         var container = client
-            .GetContainer("UserManagement", "Dlq");
+            .GetContainer("UserManagement", "DurableDlq");
 
         var doc = new CosmosDlqMessage
         {
