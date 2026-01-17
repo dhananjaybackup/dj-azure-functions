@@ -82,9 +82,8 @@ public class UserOrchestrator
             //     ReplayCount = 0
             // });
             // changed for Cosmos DB DLQ
-            await context.CallActivityAsync("SendToDlqActivity", new CosmosDlqMessage
+            await context.CallActivityAsync("SendToDlqActivity", new DlqMessage
             {
-                Id = $"{user.UserId}-{context.InstanceId}",
                 UserId = user.UserId,
                 UserName = user.UserName,
                 Reason = ex.Message,
