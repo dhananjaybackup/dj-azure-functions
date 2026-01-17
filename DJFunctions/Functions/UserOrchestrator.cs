@@ -67,7 +67,7 @@ public class UserOrchestrator
             // FAN-IN (wait for all to complete)
             await Task.WhenAll(validateTask, saveTask);
         }
-        catch (Exception ex)
+        catch
         {
             // await context.CallActivityAsync("SendToDlqActivity", new DlqMessage
             // {
@@ -84,13 +84,17 @@ public class UserOrchestrator
             // changed for Cosmos DB DLQ
             await context.CallActivityAsync("SendToDlqActivity", new DlqMessage
             {
+                PartitionKey = user.UserId,
+                RowKey = context.InstanceId,
+
                 UserId = user.UserId,
                 UserName = user.UserName,
-                Reason = ex.Message,
+                Reason = "UserOnboardingOrchestrator failed",
                 FailedAt = context.CurrentUtcDateTime,
-                ReplayCount = 0
+                ReplayCount = context.IsReplaying ? 1 : 0
             });
-            throw;
+
+            throw; // let orchestration fail
         }
     }
 

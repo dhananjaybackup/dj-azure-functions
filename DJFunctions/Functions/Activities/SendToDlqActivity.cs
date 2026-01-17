@@ -48,34 +48,44 @@ public class SendToDlqActivity
     [ActivityTrigger] DlqMessage dlq,
     FunctionContext context)
     {
-         var logger = context.GetLogger("SendToDlqActivity");
-        var client = new CosmosClient(
-    Environment.GetEnvironmentVariable("CosmosConnection"));
+        var logger = context.GetLogger("SendToDlqActivity");
 
-        var container = client
-            .GetContainer("UserManagement", "DurableDlq");
-
-        var doc = new CosmosDlqMessage
+        try
         {
-            Id = dlq.RowKey,                // OrchestrationId
-            UserId = dlq.UserId,            // Partition key
-            UserName = dlq.UserName ?? "UNKNOWN",
-            CorrelationId = dlq.CorrelationId,
-            Reason = dlq.Reason,
-            FailedAt = dlq.FailedAt,
-            ReplayCount = 0,
-            Status = "Failed"
-        };
+            var client = new CosmosClient(
+                Environment.GetEnvironmentVariable("CosmosConnection"));
 
-        await container.UpsertItemAsync(
-            doc,
-            new PartitionKey(doc.UserId));
+            var container = client.GetContainer(
+                "UserManagement",
+                "DurableDlq");
 
-        logger.LogError(
-            "User sent to DLQ | User={UserId} | Correlation={CorrelationId} | Reason={Reason}",
-            dlq.UserId,
-            dlq.CorrelationId,
-            dlq.Reason);
+            var doc = new CosmosDlqMessage
+            {
+                Id = dlq.RowKey,           // mapped → "id"
+                UserId = dlq.UserId,       // mapped → "userId"
+                UserName = dlq.UserName ?? "UNKNOWN",
+                CorrelationId = dlq.CorrelationId,
+                Reason = dlq.Reason,
+                FailedAt = dlq.FailedAt,
+                ReplayCount = 0,
+                Status = "Failed"
+            };
+
+            await container.UpsertItemAsync(
+                doc,
+                new PartitionKey(doc.UserId));
+
+            logger.LogError(
+                "🚨 DLQ | User={UserId} | Instance={InstanceId} | Reason={Reason}",
+                doc.UserId,
+                doc.Id,
+                doc.Reason);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to write DLQ item to Cosmos");
+            throw; // VERY important for Durable visibility
+        }
     }
 
 }
