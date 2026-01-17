@@ -48,26 +48,28 @@ public class SendToDlqActivity
     [ActivityTrigger] DlqMessage dlq,
     FunctionContext context)
     {
-        var logger = context.GetLogger("SendToDlqActivity");
+         var logger = context.GetLogger("SendToDlqActivity");
+        var client = new CosmosClient(
+    Environment.GetEnvironmentVariable("CosmosConnection"));
 
-        var container = CosmosDlqContainerFactory.GetContainer();
+        var container = client
+            .GetContainer("UserManagement", "Dlq");
 
-        // One document per failure (NOT overwrite)
-        var cosmosEntity = new CosmosDlqMessage
+        var doc = new CosmosDlqMessage
         {
-            Id = $"{dlq.UserId}-{Guid.NewGuid()}",   // unique per failure
-            UserId = dlq.UserId,                     // partition key
-            UserName = string.IsNullOrWhiteSpace(dlq.UserName) ? "UNKNOWN" : dlq.UserName,
+            Id = dlq.RowKey,                // OrchestrationId
+            UserId = dlq.UserId,            // Partition key
+            UserName = dlq.UserName ?? "UNKNOWN",
             CorrelationId = dlq.CorrelationId,
             Reason = dlq.Reason,
             FailedAt = dlq.FailedAt,
-            ReplayCount = dlq.ReplayCount
+            ReplayCount = 0,
+            Status = "Failed"
         };
 
-        await container.CreateItemAsync(
-            cosmosEntity,
-            new PartitionKey(cosmosEntity.UserId)
-        );
+        await container.UpsertItemAsync(
+            doc,
+            new PartitionKey(doc.UserId));
 
         logger.LogError(
             "User sent to DLQ | User={UserId} | Correlation={CorrelationId} | Reason={Reason}",
