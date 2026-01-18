@@ -1,7 +1,18 @@
 using Azure;
 using Azure.Data.Tables;
 using DJFunctions.Models;
-public class DlqMessage : ITableEntity
+public class DlqMessage
+{
+    public string PartitionKey { get; set; }
+    public string RowKey { get; set; }
+    public string UserId { get; set; }
+    public string UserName { get; set; }
+    public string? CorrelationId { get; set; }
+    public string Reason { get; set; }
+    public DateTime FailedAt { get; set; }
+    public int ReplayCount { get; set; }
+}
+public class DlqTableEntity : ITableEntity
 {
     // Required by Table Storage
    // Table keys
