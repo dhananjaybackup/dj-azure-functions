@@ -10,7 +10,7 @@ namespace DJFunctions;
 
 public class SendToDlqActivity
 {
-     private readonly ILogger<SendToDlqActivity> _logger;
+    private readonly ILogger<SendToDlqActivity> _logger;
 
     public SendToDlqActivity(ILogger<SendToDlqActivity> logger)
     {
@@ -58,38 +58,41 @@ public class SendToDlqActivity
 
         try
         {
-            var client = new CosmosClient(
-                Environment.GetEnvironmentVariable("CosmosConnection"));
-            var container = client.GetContainer(
-                "UserManagement",
-                "DurableDlq");
-// logger.LogInformation("CosmosClient created for DLQ");
-_logger.LogInformation("CosmosClient SendToDlqActivity Writing to Cosmos DLQ for User {UserId} and Instance {InstanceId}", dlq.UserId, dlq.RowKey);
+            var connectionString = Environment.GetEnvironmentVariable("CosmosConnection");
+
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new InvalidOperationException("CosmosConnection not configured");
+            }
+
+            var client = new CosmosClient(connectionString);
+            var container = client.GetContainer("UserManagement", "DurableDlq");
+            // logger.LogInformation("CosmosClient created for DLQ");
+            _logger.LogInformation("CosmosClient SendToDlqActivity Writing to Cosmos DLQ for User {UserId} and Instance {InstanceId}", dlq.UserId, dlq.RowKey);
             var doc = new CosmosDlqMessage
             {
-                Id = dlq.RowKey,           // mapped → "id"
-                UserId = dlq.UserId,       // mapped → "userId"
+                Id = dlq.RowKey,
+                UserId = dlq.UserId,
                 UserName = dlq.UserName ?? "UNKNOWN",
                 CorrelationId = dlq.CorrelationId,
                 Reason = dlq.Reason,
                 FailedAt = dlq.FailedAt,
-                ReplayCount = 0,
+                ReplayCount = dlq.ReplayCount,
                 Status = "Failed"
             };
+            _logger.LogInformation("SendToDlqActivity UPSERTING - Doc: {@Doc}", doc);
+            var response = await container.UpsertItemAsync(
+                  doc,
+                  new PartitionKey(doc.UserId));
+            _logger.LogInformation("SendToDlqActivity SUCCESS - StatusCode: {StatusCode}, RU: {RU}",
+                       response.StatusCode, response.RequestCharge);
 
-            await container.UpsertItemAsync(
-                doc,
-                new PartitionKey(doc.UserId));
-
-            _logger.LogError(
-                "🚨 DLQ | User={UserId} | Instance={InstanceId} | Reason={Reason}",
-                doc.UserId,
-                doc.Id,
-                doc.Reason);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to write DLQ item to Cosmos");
+            _logger.LogError(ex,
+             "SendToDlqActivity FAILED - UserId: {UserId}, Message: {Message}",
+            dlq.UserId, ex.Message);
             throw; // VERY important for Durable visibility
         }
     }

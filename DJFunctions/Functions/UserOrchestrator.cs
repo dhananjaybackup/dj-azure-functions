@@ -68,7 +68,7 @@ public class UserOrchestrator
             await Task.WhenAll(validateTask, saveTask);
             throw new Exception("SQL Server down for logging testing Cosmos DB DLQ");
         }
-        catch
+        catch (Exception ex)
         {
             // await context.CallActivityAsync("SendToDlqActivity", new DlqMessage
             // {
@@ -88,15 +88,15 @@ public class UserOrchestrator
             {
                 PartitionKey = user.UserId,
                 RowKey = context.InstanceId,
-
                 UserId = user.UserId,
                 UserName = user.UserName,
-                Reason = "UserOnboardingOrchestrator failed",
+                Reason = $"UserOnboardingOrchestrator failed:{ex.Message}",
                 FailedAt = context.CurrentUtcDateTime,
-                ReplayCount = context.IsReplaying ? 1 : 0
+                ReplayCount = context.IsReplaying ? 1 : 0,
+                CorrelationId = context.InstanceId
             });
 
-           // throw; // let orchestration fail
+           throw; // let orchestration fail
         }
     }
 
