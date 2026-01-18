@@ -96,7 +96,7 @@ public class UserOrchestrator
                 ReplayCount = context.IsReplaying ? 1 : 0
             });
 
-            throw; // let orchestration fail
+           // throw; // let orchestration fail
         }
     }
 
