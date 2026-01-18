@@ -5,6 +5,7 @@ using DJFunctions.Models;
 using Azure.Data.Tables;
 using Azure.Identity;
 using Microsoft.Azure.Cosmos;
+using System.Text;
 
 namespace DJFunctions;
 
@@ -84,11 +85,16 @@ public class SendToDlqActivity
 
             // logger.LogInformation("CosmosClient created for DLQ");
 
-            var safeId = Uri.EscapeDataString(dlq.RowKey);
+            var safeId = Convert.ToHexString(
+     System.Security.Cryptography.SHA256.HashData(
+         Encoding.UTF8.GetBytes(dlq.RowKey)
+     )
+ );
+            _logger.LogInformation("DLQ RAW RowKey = {RowKey}", dlq.RowKey);
             var doc = new CosmosDlqMessage
             {
                 Id = safeId,
-                UserId = dlq.UserId?? "UNKNOWN",
+                UserId = dlq.UserId ?? "UNKNOWN",
                 UserName = dlq.UserName ?? "UNKNOWN",
                 CorrelationId = dlq.CorrelationId,
                 Reason = dlq.Reason,
@@ -96,7 +102,7 @@ public class SendToDlqActivity
                 ReplayCount = dlq.ReplayCount,
                 Status = "Failed"
             };
-            if (string.IsNullOrWhiteSpace(doc.Id))
+            if (string.IsNullOrWhiteSpace(safeId))
                 throw new Exception("DLQ Cosmos id is empty");
 
             if (string.IsNullOrWhiteSpace(doc.UserId))
@@ -107,15 +113,15 @@ public class SendToDlqActivity
             var response = await container.UpsertItemAsync(
                   doc,
                   new PartitionKey(doc.UserId));
-//             var response = await container.UpsertItemAsync(
-//     new
-//     {
-//         id = "test-123",
-//         userId = "U1",
-//         status = "Failed"
-//     },
-//     new PartitionKey("U1")
-// );
+            //             var response = await container.UpsertItemAsync(
+            //     new
+            //     {
+            //         id = "test-123",
+            //         userId = "U1",
+            //         status = "Failed"
+            //     },
+            //     new PartitionKey("U1")
+            // );
             _logger.LogInformation("SendToDlqActivity SUCCESS - StatusCode: {StatusCode}, RU: {RU}",
                        response.StatusCode, response.RequestCharge);
 
