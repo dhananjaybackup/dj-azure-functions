@@ -19,7 +19,7 @@ public class ReplayUser
         var table = DlqTableFactory.GetDlqTable();
 
         var last = table
-            .Query<DlqMessage>(x => x.PartitionKey == instanceId)
+            .Query<DlqTableEntity>(x => x.PartitionKey == instanceId)
             .OrderByDescending(x => x.Timestamp)
             .First();
 

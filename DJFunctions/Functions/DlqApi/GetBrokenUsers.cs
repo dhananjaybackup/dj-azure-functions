@@ -13,7 +13,7 @@ public class GetBrokenUsers
     {
         var table = DlqTableFactory.GetDlqTable();
         // LEGAL Azure Table scan
-        var rows = table.Query<DlqMessage>(
+        var rows = table.Query<DlqTableEntity>(
             x => x.PartitionKey.CompareTo("user-") >= 0
         ).ToList();
 

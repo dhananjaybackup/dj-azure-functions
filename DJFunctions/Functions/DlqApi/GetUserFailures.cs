@@ -14,7 +14,7 @@ public class GetUserFailures
         var table = DlqTableFactory.GetDlqTable();
 
         var rows = table
-            .Query<DlqMessage>(x => x.PartitionKey == instanceId)
+            .Query<DlqTableEntity>(x => x.PartitionKey == instanceId)
             .OrderByDescending(x => x.Timestamp)
             .ToList();
 

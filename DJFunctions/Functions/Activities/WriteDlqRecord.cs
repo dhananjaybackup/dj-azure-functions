@@ -11,7 +11,7 @@ public class WriteDlqRecordActivity
 {
     [Function("WriteDlqRecord")]
     public async Task Run(
-        [ActivityTrigger] DlqMessage msg)
+        [ActivityTrigger] DlqTableEntity msg)
     {
         var connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
 
