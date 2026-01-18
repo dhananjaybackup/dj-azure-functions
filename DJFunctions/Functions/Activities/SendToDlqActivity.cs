@@ -82,23 +82,32 @@ public class SendToDlqActivity
                 tokenCredential: new DefaultAzureCredential());
             var container = client.GetContainer("UserManagement", "DurableDlq");
             // logger.LogInformation("CosmosClient created for DLQ");
-            var doc = new CosmosDlqMessage
-            {
-                Id = dlq.RowKey,
-                UserId = dlq.UserId,
-                UserName = dlq.UserName ?? "UNKNOWN",
-                CorrelationId = dlq.CorrelationId,
-                Reason = dlq.Reason,
-                FailedAt = dlq.FailedAt,
-                ReplayCount = dlq.ReplayCount,
-                Status = "Failed"
-            };
-          _logger.LogInformation(
-                    "Upserting document - Id: {Id}, UserId: {UserId}, UserName: {UserName}", 
-                    doc.Id, doc.UserId, doc.UserName);
+            // var doc = new CosmosDlqMessage
+            // {
+            //     Id = dlq.RowKey,
+            //     UserId = dlq.UserId,
+            //     UserName = dlq.UserName ?? "UNKNOWN",
+            //     CorrelationId = dlq.CorrelationId,
+            //     Reason = dlq.Reason,
+            //     FailedAt = dlq.FailedAt,
+            //     ReplayCount = dlq.ReplayCount,
+            //     Status = "Failed"
+            // };
+            // _logger.LogInformation(
+            //           "Upserting document - Id: {Id}, UserId: {UserId}, UserName: {UserName}",
+            //           doc.Id, doc.UserId, doc.UserName);
+            // var response = await container.UpsertItemAsync(
+            //       doc,
+            //       new PartitionKey(doc.UserId));
             var response = await container.UpsertItemAsync(
-                  doc,
-                  new PartitionKey(doc.UserId));
+    new
+    {
+        id = "test-123",
+        userId = "U1",
+        status = "Failed"
+    },
+    new PartitionKey("U1")
+);
             _logger.LogInformation("SendToDlqActivity SUCCESS - StatusCode: {StatusCode}, RU: {RU}",
                        response.StatusCode, response.RequestCharge);
 
