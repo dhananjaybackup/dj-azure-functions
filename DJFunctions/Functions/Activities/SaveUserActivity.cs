@@ -12,7 +12,7 @@ public class SaveUserActivity
         FunctionContext context)
     {
         var logger = context.GetLogger("SaveUserActivity");
-        logger.LogInformation("Saving user to storage");
+        logger.LogInformation("SaveUserActivity Saving user to storage");
         var entity = new UserEntity
         {
             PartitionKey = user.CorrelationId,

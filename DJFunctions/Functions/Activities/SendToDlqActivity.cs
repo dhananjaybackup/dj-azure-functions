@@ -54,10 +54,10 @@ public class SendToDlqActivity
         {
             var client = new CosmosClient(
                 Environment.GetEnvironmentVariable("CosmosConnection"));
-
             var container = client.GetContainer(
                 "UserManagement",
                 "DurableDlq");
+logger.LogInformation("CosmosClient created for DLQ");
 
             var doc = new CosmosDlqMessage
             {

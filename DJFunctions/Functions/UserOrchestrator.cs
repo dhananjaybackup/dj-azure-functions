@@ -63,7 +63,7 @@ public class UserOrchestrator
             // FAN-OUT (run in parallel)
             var validateTask = context.CallActivityAsync<bool>("ValidateUserActivity", user);
             var saveTask = context.CallActivityAsync("SaveUserActivity", user);
-            await context.CallActivityAsync("SendWelcomeEmail", input);
+           // await context.CallActivityAsync("SendWelcomeEmail", input);
             // FAN-IN (wait for all to complete)
             await Task.WhenAll(validateTask, saveTask);
         }
@@ -82,6 +82,7 @@ public class UserOrchestrator
             //     ReplayCount = 0
             // });
             // changed for Cosmos DB DLQ
+            _logger.LogInformation("SendToDlqActivity Sending to DLQ from UserOnboardingOrchestrator for User {UserId}", user.UserId);
             await context.CallActivityAsync("SendToDlqActivity", new DlqMessage
             {
                 PartitionKey = user.UserId,

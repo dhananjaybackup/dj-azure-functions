@@ -89,6 +89,7 @@ public class BlobEventFromServiceBus
             // Always try to deserialize first
             var body = message.Body.ToString();
             user = JsonSerializer.Deserialize<UserDto>(body);
+            _logger.LogInformation("BlobEventFromServiceBus processing message {MessageId} for User {UserId} and Delivery count : {deliveryCount}", messageId, user?.UserId, deliveryCount);
             // 1️⃣ Poison detection FIRST
             if (deliveryCount >= 5)
             {
@@ -119,7 +120,7 @@ public class BlobEventFromServiceBus
 
             // 4️⃣ Exactly-once instance id
             var instanceId = $"user-{messageId}";
-
+_logger.LogInformation("UserOnboardingOrchestrator Scheduling orchestration instance {InstanceId} for User {UserId}", instanceId, user?.UserId);
             // 5️⃣ Start or resume workflow
             await client.ScheduleNewOrchestrationInstanceAsync(
                 "UserOnboardingOrchestrator",
