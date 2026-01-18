@@ -58,17 +58,30 @@ public class SendToDlqActivity
 
         try
         {
-            var connectionString = Environment.GetEnvironmentVariable("CosmosConnection");
+            _logger.LogInformation(
+                    "SendToDlqActivity START - UserId: {UserId}, RowKey: {RowKey}",
+                    dlq?.UserId, dlq?.RowKey);
 
-            if (string.IsNullOrEmpty(connectionString))
+            if (dlq == null)
             {
-                throw new InvalidOperationException("CosmosConnection not configured");
+                throw new ArgumentNullException(nameof(dlq), "DlqMessage cannot be null");
+            }
+            var cosmosEndpoint = Environment.GetEnvironmentVariable("CosmosEndpoint");
+
+            if (string.IsNullOrEmpty(cosmosEndpoint))
+            {
+                _logger.LogError("CosmosEndpoint environment variable is not set");
+                throw new InvalidOperationException("CosmosEndpoint not configured. Please add it to Application Settings.");
             }
 
-            var client = new CosmosClient(connectionString);
+            _logger.LogInformation("Creating CosmosClient with Managed Identity - Endpoint: {Endpoint}", cosmosEndpoint);
+
+            // ✅ CORRECT: Use endpoint + Managed Identity (NOT connection string)
+            var client = new CosmosClient(
+                accountEndpoint: cosmosEndpoint,
+                tokenCredential: new DefaultAzureCredential());
             var container = client.GetContainer("UserManagement", "DurableDlq");
             // logger.LogInformation("CosmosClient created for DLQ");
-            _logger.LogInformation("CosmosClient SendToDlqActivity Writing to Cosmos DLQ for User {UserId} and Instance {InstanceId}", dlq.UserId, dlq.RowKey);
             var doc = new CosmosDlqMessage
             {
                 Id = dlq.RowKey,
@@ -80,7 +93,9 @@ public class SendToDlqActivity
                 ReplayCount = dlq.ReplayCount,
                 Status = "Failed"
             };
-            _logger.LogInformation("SendToDlqActivity UPSERTING - Doc: {@Doc}", doc);
+          _logger.LogInformation(
+                    "Upserting document - Id: {Id}, UserId: {UserId}, UserName: {UserName}", 
+                    doc.Id, doc.UserId, doc.UserName);
             var response = await container.UpsertItemAsync(
                   doc,
                   new PartitionKey(doc.UserId));
