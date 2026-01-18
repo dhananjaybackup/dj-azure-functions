@@ -81,33 +81,41 @@ public class SendToDlqActivity
                 accountEndpoint: cosmosEndpoint,
                 tokenCredential: new DefaultAzureCredential());
             var container = client.GetContainer("UserManagement", "DurableDlq");
+
             // logger.LogInformation("CosmosClient created for DLQ");
-            // var doc = new CosmosDlqMessage
-            // {
-            //     Id = dlq.RowKey,
-            //     UserId = dlq.UserId,
-            //     UserName = dlq.UserName ?? "UNKNOWN",
-            //     CorrelationId = dlq.CorrelationId,
-            //     Reason = dlq.Reason,
-            //     FailedAt = dlq.FailedAt,
-            //     ReplayCount = dlq.ReplayCount,
-            //     Status = "Failed"
-            // };
-            // _logger.LogInformation(
-            //           "Upserting document - Id: {Id}, UserId: {UserId}, UserName: {UserName}",
-            //           doc.Id, doc.UserId, doc.UserName);
-            // var response = await container.UpsertItemAsync(
-            //       doc,
-            //       new PartitionKey(doc.UserId));
+
+            var safeId = Uri.EscapeDataString(dlq.RowKey);
+            var doc = new CosmosDlqMessage
+            {
+                Id = safeId,
+                UserId = dlq.UserId?? "UNKNOWN",
+                UserName = dlq.UserName ?? "UNKNOWN",
+                CorrelationId = dlq.CorrelationId,
+                Reason = dlq.Reason,
+                FailedAt = dlq.FailedAt,
+                ReplayCount = dlq.ReplayCount,
+                Status = "Failed"
+            };
+            if (string.IsNullOrWhiteSpace(doc.Id))
+                throw new Exception("DLQ Cosmos id is empty");
+
+            if (string.IsNullOrWhiteSpace(doc.UserId))
+                throw new Exception("DLQ Cosmos partition key (userId) is empty");
+            _logger.LogInformation(
+                      "Upserting document - Id: {Id}, UserId: {UserId}, UserName: {UserName}",
+                      doc.Id, doc.UserId, doc.UserName);
             var response = await container.UpsertItemAsync(
-    new
-    {
-        id = "test-123",
-        userId = "U1",
-        status = "Failed"
-    },
-    new PartitionKey("U1")
-);
+                  doc,
+                  new PartitionKey(doc.UserId));
+//             var response = await container.UpsertItemAsync(
+//     new
+//     {
+//         id = "test-123",
+//         userId = "U1",
+//         status = "Failed"
+//     },
+//     new PartitionKey("U1")
+// );
             _logger.LogInformation("SendToDlqActivity SUCCESS - StatusCode: {StatusCode}, RU: {RU}",
                        response.StatusCode, response.RequestCharge);
 
