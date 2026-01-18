@@ -10,6 +10,12 @@ namespace DJFunctions;
 
 public class SendToDlqActivity
 {
+     private readonly ILogger<SendToDlqActivity> _logger;
+
+    public SendToDlqActivity(ILogger<SendToDlqActivity> logger)
+    {
+        _logger = logger;
+    }
 
     /*
         [Function("SendToDlqActivity")]
@@ -48,7 +54,7 @@ public class SendToDlqActivity
     [ActivityTrigger] DlqMessage dlq,
     FunctionContext context)
     {
-        var logger = context.GetLogger("SendToDlqActivity");
+        // var logger = context.GetLogger("SendToDlqActivity");
 
         try
         {
@@ -57,8 +63,8 @@ public class SendToDlqActivity
             var container = client.GetContainer(
                 "UserManagement",
                 "DurableDlq");
-logger.LogInformation("CosmosClient created for DLQ");
-
+// logger.LogInformation("CosmosClient created for DLQ");
+_logger.LogInformation("CosmosClient SendToDlqActivity Writing to Cosmos DLQ for User {UserId} and Instance {InstanceId}", dlq.UserId, dlq.RowKey);
             var doc = new CosmosDlqMessage
             {
                 Id = dlq.RowKey,           // mapped → "id"
@@ -75,7 +81,7 @@ logger.LogInformation("CosmosClient created for DLQ");
                 doc,
                 new PartitionKey(doc.UserId));
 
-            logger.LogError(
+            _logger.LogError(
                 "🚨 DLQ | User={UserId} | Instance={InstanceId} | Reason={Reason}",
                 doc.UserId,
                 doc.Id,
@@ -83,7 +89,7 @@ logger.LogInformation("CosmosClient created for DLQ");
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to write DLQ item to Cosmos");
+            _logger.LogError(ex, "Failed to write DLQ item to Cosmos");
             throw; // VERY important for Durable visibility
         }
     }

@@ -23,6 +23,6 @@ public class SaveUserActivity
         // Simulate failure for testing retry policy    
         // existing SaveUser logic
         logger.LogInformation("Saving user {User} to database", entity.UserName );
-        throw new Exception("SQL Server down for logging testing retry policy");
+        // throw new Exception("SQL Server down for logging testing retry policy");
     }
 }

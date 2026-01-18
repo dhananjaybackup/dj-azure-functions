@@ -66,6 +66,7 @@ public class UserOrchestrator
            // await context.CallActivityAsync("SendWelcomeEmail", input);
             // FAN-IN (wait for all to complete)
             await Task.WhenAll(validateTask, saveTask);
+            throw new Exception("SQL Server down for logging testing Cosmos DB DLQ");
         }
         catch
         {
