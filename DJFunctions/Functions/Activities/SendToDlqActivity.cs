@@ -109,11 +109,11 @@ public class SendToDlqActivity
 
             // logger.LogInformation("CosmosClient created for DLQ");
 
-            var safeId = Convert.ToHexString(
-     System.Security.Cryptography.SHA256.HashData(
-         Encoding.UTF8.GetBytes(dlq.RowKey)
-     )
- );
+//             var safeId = Convert.ToHexString(
+//      System.Security.Cryptography.SHA256.HashData(
+//          Encoding.UTF8.GetBytes(dlq.RowKey)
+//      )
+//  );
             _logger.LogInformation("DLQ RAW RowKey = {RowKey}", dlq.RowKey);
             // var doc = new CosmosDlqMessage
             // {
@@ -126,23 +126,24 @@ public class SendToDlqActivity
             //     ReplayCount = dlq.ReplayCount,
             //     Status = "Failed"
             // };
+            var safeId = SanitizeId(dlq.RowKey);
             var doc = new 
             {
-                Id = safeId,
-                UserId = dlq.UserId ?? "UNKNOWN",
-                UserName = dlq.UserName ?? "UNKNOWN"               
+                id = safeId,
+                userId = SanitizeId(dlq.UserId) ?? "UNKNOWN",
+                userName = dlq.UserName ?? "UNKNOWN"               
             };
             if (string.IsNullOrWhiteSpace(safeId))
                 throw new Exception("DLQ Cosmos id is empty");
 
-            if (string.IsNullOrWhiteSpace(doc.UserId))
+            if (string.IsNullOrWhiteSpace(doc.userId))
                 throw new Exception("DLQ Cosmos partition key (userId) is empty");
             _logger.LogInformation(
                       "Upserting document - Id: {Id}, UserId: {UserId}, UserName: {UserName}",
-                      doc.Id, doc.UserId, doc.UserName);
+                      doc.id, doc.userId, doc.userName);
             var response = await container.UpsertItemAsync(
                   doc,
-                  new PartitionKey(doc.UserId));
+                  new PartitionKey(doc.userId));
             //             var response = await container.UpsertItemAsync(
             //     new
             //     {

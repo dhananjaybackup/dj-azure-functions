@@ -48,15 +48,15 @@ public class UserOrchestrator
     [OrchestrationTrigger] TaskOrchestrationContext context)
     {
         var user = context.GetInput<UserDto>();
-        var retryPolicy = new RetryPolicy(3, TimeSpan.FromSeconds(5));
-        var taskOptions = new TaskOptions(retryPolicy);
-        var instanceId = context.InstanceId;
-        var input = new ActivityInput
-        {
-            UserId = user.UserId,
-            UserName = user.UserName,
-            InstanceId = instanceId
-        };
+        // var retryPolicy = new RetryPolicy(3, TimeSpan.FromSeconds(5));
+        // var taskOptions = new TaskOptions(retryPolicy);
+        // var instanceId = context.InstanceId;
+        // var input = new ActivityInput
+        // {
+        //     UserId = user.UserId,
+        //     UserName = user.UserName,
+        //     InstanceId = instanceId
+        // };
 
         try
         {
