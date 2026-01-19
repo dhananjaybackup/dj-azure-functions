@@ -132,6 +132,9 @@ public class SendToDlqActivity
                 id = safeId,
                 userId = SanitizeId(dlq.UserId) ?? "UNKNOWN",
                 userName = dlq.UserName ?? "UNKNOWN",
+                correlationId = dlq.CorrelationId ?? string.Empty,
+                reason = dlq.Reason ?? string.Empty, 
+                failedAt = dlq.FailedAt.ToString("o"),
                 status = "Failed"               
             };
             if (string.IsNullOrWhiteSpace(safeId))
