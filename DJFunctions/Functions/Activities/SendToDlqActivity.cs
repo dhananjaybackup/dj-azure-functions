@@ -116,7 +116,7 @@ public class SendToDlqActivity
 //  );
             var safeId = SanitizeId(dlq.RowKey);
             _logger.LogInformation("DLQ RAW RowKey = {RowKey}", dlq.RowKey);
-            var doc = new CosmosDlqMessage
+            var doc = new 
             {
                 Id = safeId,
                 UserId = dlq.UserId ?? "UNKNOWN",
