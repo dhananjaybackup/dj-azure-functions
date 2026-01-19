@@ -50,6 +50,30 @@ public class SendToDlqActivity
                 dlq.Reason);
         }
         */
+    private string SanitizeId(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return Guid.NewGuid().ToString();
+        }
+
+        // Cosmos DB ID restrictions:
+        // - Can't contain: / \ ? #
+        // - Max 255 characters
+        var sanitized = id
+            .Replace("/", "-")
+            .Replace("\\", "-")
+            .Replace("?", "-")
+            .Replace("#", "-")
+            .Trim();
+
+        if (sanitized.Length > 255)
+        {
+            sanitized = sanitized.Substring(0, 255);
+        }
+
+        return string.IsNullOrWhiteSpace(sanitized) ? Guid.NewGuid().ToString() : sanitized;
+    }
     [Function("SendToDlqActivity")]
     public async Task Run(
     [ActivityTrigger] DlqMessage dlq,
@@ -91,16 +115,22 @@ public class SendToDlqActivity
      )
  );
             _logger.LogInformation("DLQ RAW RowKey = {RowKey}", dlq.RowKey);
-            var doc = new CosmosDlqMessage
+            // var doc = new CosmosDlqMessage
+            // {
+            //     Id = safeId,
+            //     UserId = dlq.UserId ?? "UNKNOWN",
+            //     UserName = dlq.UserName ?? "UNKNOWN",
+            //     CorrelationId = dlq.CorrelationId,
+            //     Reason = dlq.Reason,
+            //     FailedAt = dlq.FailedAt,
+            //     ReplayCount = dlq.ReplayCount,
+            //     Status = "Failed"
+            // };
+            var doc = new 
             {
                 Id = safeId,
                 UserId = dlq.UserId ?? "UNKNOWN",
-                UserName = dlq.UserName ?? "UNKNOWN",
-                CorrelationId = dlq.CorrelationId,
-                Reason = dlq.Reason,
-                FailedAt = dlq.FailedAt,
-                ReplayCount = dlq.ReplayCount,
-                Status = "Failed"
+                UserName = dlq.UserName ?? "UNKNOWN"               
             };
             if (string.IsNullOrWhiteSpace(safeId))
                 throw new Exception("DLQ Cosmos id is empty");
