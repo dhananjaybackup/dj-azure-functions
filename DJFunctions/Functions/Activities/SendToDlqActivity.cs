@@ -121,10 +121,10 @@ public class SendToDlqActivity
                 Id = safeId,
                 UserId = dlq.UserId ?? "UNKNOWN",
                 UserName = dlq.UserName ?? "UNKNOWN",
-                CorrelationId = dlq.CorrelationId ?? string.Empty,
-                Reason = dlq.Reason ?? string.Empty, 
-                FailedAt = dlq.FailedAt.ToString("o"),
-                ReplayCount = 0,//dlq.ReplayCount,
+                // CorrelationId = dlq.CorrelationId ?? string.Empty,
+                // Reason = dlq.Reason ?? string.Empty, 
+                // FailedAt = dlq.FailedAt.ToString("o"),
+                // ReplayCount = 0,//dlq.ReplayCount,
                 Status = "Failed"
             };
             // var doc = new 
