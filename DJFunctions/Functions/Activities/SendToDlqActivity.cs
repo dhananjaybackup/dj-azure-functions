@@ -121,9 +121,9 @@ public class SendToDlqActivity
                 Id = safeId,
                 UserId = dlq.UserId ?? "UNKNOWN",
                 UserName = dlq.UserName ?? "UNKNOWN",
-                CorrelationId = null, //dlq.CorrelationId,
-                Reason = null, //dlq.Reason,
-                FailedAt = DateTime.UtcNow,//dlq.FailedAt,
+                CorrelationId = dlq.CorrelationId ?? string.Empty,
+                Reason = dlq.Reason ?? string.Empty, 
+                FailedAt = dlq.FailedAt.ToString("o"),
                 ReplayCount = 0,//dlq.ReplayCount,
                 Status = "Failed"
             };

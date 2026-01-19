@@ -18,7 +18,7 @@ public class CosmosDlqMessage
     public string Reason { get; set; }
     
     [JsonPropertyName("failedAt")]
-    public DateTime FailedAt { get; set; }
+    public string FailedAt { get; set; }
     
     [JsonPropertyName("replayCount")]
     public int ReplayCount { get; set; }
