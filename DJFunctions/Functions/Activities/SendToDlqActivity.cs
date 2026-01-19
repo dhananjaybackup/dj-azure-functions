@@ -116,34 +116,35 @@ public class SendToDlqActivity
 //  );
             var safeId = SanitizeId(dlq.RowKey);
             _logger.LogInformation("DLQ RAW RowKey = {RowKey}", dlq.RowKey);
+            // var doc1 = new CosmosDlqMessage
+            // {
+            //     Id = safeId,
+            //     UserId = dlq.UserId ?? "UNKNOWN",
+            //     UserName = dlq.UserName ?? "UNKNOWN",
+            //     // CorrelationId = dlq.CorrelationId ?? string.Empty,
+            //     // Reason = dlq.Reason ?? string.Empty, 
+            //     // FailedAt = dlq.FailedAt.ToString("o"),
+            //     // ReplayCount = 0,//dlq.ReplayCount,
+            //     Status = "Failed"
+            // };
             var doc = new 
             {
-                Id = safeId,
-                UserId = dlq.UserId ?? "UNKNOWN",
-                UserName = dlq.UserName ?? "UNKNOWN",
-                // CorrelationId = dlq.CorrelationId ?? string.Empty,
-                // Reason = dlq.Reason ?? string.Empty, 
-                // FailedAt = dlq.FailedAt.ToString("o"),
-                // ReplayCount = 0,//dlq.ReplayCount,
-                Status = "Failed"
+                id = safeId,
+                userId = SanitizeId(dlq.UserId) ?? "UNKNOWN",
+                userName = dlq.UserName ?? "UNKNOWN",
+                status = "Failed"               
             };
-            // var doc = new 
-            // {
-            //     id = safeId,
-            //     userId = SanitizeId(dlq.UserId) ?? "UNKNOWN",
-            //     userName = dlq.UserName ?? "UNKNOWN"               
-            // };
             if (string.IsNullOrWhiteSpace(safeId))
                 throw new Exception("DLQ Cosmos id is empty");
 
-            if (string.IsNullOrWhiteSpace(doc.UserId))
+            if (string.IsNullOrWhiteSpace(doc.userId))
                 throw new Exception("DLQ Cosmos partition key (userId) is empty");
             _logger.LogInformation(
                       "Upserting document - Id: {Id}, UserId: {UserId}, UserName: {UserName}",
-                      doc.Id, doc.UserId, doc.UserName);
+                      doc.id, doc.userId, doc.userName);
             var response = await container.UpsertItemAsync(
                   doc,
-                  new PartitionKey(doc.UserId));
+                  new PartitionKey(doc.userId));
             //             var response = await container.UpsertItemAsync(
             //     new
             //     {
