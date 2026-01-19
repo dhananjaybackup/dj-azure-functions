@@ -42,21 +42,23 @@ public class UserOrchestrator
         await context.CallActivityAsync("SaveUserActivity", user, taskOptions);
     }
     */
-    // 3. Fan-Out / Fan-In distributed processing
+    // 3. Fan-Out / Fan-In distributed processing and for durable function with DLQ
+    // modifed this to test Cosmos DB DLQ
+    /*
     [Function("UserOnboardingOrchestrator")]
     public async Task Run(
     [OrchestrationTrigger] TaskOrchestrationContext context)
     {
         var user = context.GetInput<UserDto>();
-        // var retryPolicy = new RetryPolicy(3, TimeSpan.FromSeconds(5));
-        // var taskOptions = new TaskOptions(retryPolicy);
-        // var instanceId = context.InstanceId;
-        // var input = new ActivityInput
-        // {
-        //     UserId = user.UserId,
-        //     UserName = user.UserName,
-        //     InstanceId = instanceId
-        // };
+        var retryPolicy = new RetryPolicy(3, TimeSpan.FromSeconds(5));
+        var taskOptions = new TaskOptions(retryPolicy);
+        var instanceId = context.InstanceId;
+        var input = new ActivityInput
+        {
+            UserId = user.UserId,
+            UserName = user.UserName,
+            InstanceId = instanceId
+        };
 
         try
         {
@@ -98,7 +100,45 @@ public class UserOrchestrator
 
            throw; // let orchestration fail
         }
+    
+
     }
+*/
 
+    [Function("UserOnboardingOrchestrator")]
+    public async Task Run(
+        [OrchestrationTrigger] TaskOrchestrationContext context)
+    {
+        var user = context.GetInput<UserDto>();
+        _logger
+                   .LogInformation(
+                       "UserOrchestrator STARTED | UserId={UserId} | InstanceId={InstanceId}",
+                       user.UserId,
+                       context.InstanceId
+                   );
+        var aiResult = await context.CallActivityAsync<AiResult>(
+            "ProcessUserWithAi",
+            user
+        );
+        if (!aiResult.IsConfident)
+        {
+            await context.CallActivityAsync(
+                "SendToDlqActivity",
+                new DlqMessage
+                {
+                    PartitionKey = user.UserId,
+                    RowKey = context.InstanceId,
+                    UserId = user.UserId,
+                    UserName = user.UserName,
+                    CorrelationId = user.CorrelationId ?? context.InstanceId,
+                    Reason = aiResult.Reason,
+                    FailedAt = context.CurrentUtcDateTime,
+                    ReplayCount = user.ReplayCount
+                }
+            );
 
+            return;
+        }
+
+    }
 }

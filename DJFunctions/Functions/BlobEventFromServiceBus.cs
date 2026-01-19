@@ -86,6 +86,7 @@ public class BlobEventFromServiceBus
         UserDto? user = null;
         try
         {
+  
             // Always try to deserialize first
             var body = message.Body.ToString();
             user = JsonSerializer.Deserialize<UserDto>(body);
@@ -120,7 +121,7 @@ public class BlobEventFromServiceBus
 
             // 4️⃣ Exactly-once instance id
             var instanceId = $"user-{messageId}";
-_logger.LogInformation("UserOnboardingOrchestrator Scheduling orchestration instance {InstanceId} for User {UserId}", instanceId, user?.UserId);
+            _logger.LogInformation("UserOnboardingOrchestrator Scheduling orchestration instance {InstanceId} for User {UserId}", instanceId, user?.UserId);
             // 5️⃣ Start or resume workflow
             await client.ScheduleNewOrchestrationInstanceAsync(
                 "UserOnboardingOrchestrator",

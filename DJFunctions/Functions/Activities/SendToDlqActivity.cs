@@ -102,18 +102,29 @@ public class SendToDlqActivity
             _logger.LogInformation("Creating CosmosClient with Managed Identity - Endpoint: {Endpoint}", cosmosEndpoint);
 
             // ✅ CORRECT: Use endpoint + Managed Identity (NOT connection string)
+            var serializationOptions = new CosmosSerializationOptions
+            {
+                PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase,
+                IgnoreNullValues = true
+            };
+
+            var clientOptions = new CosmosClientOptions
+            {
+                SerializerOptions = serializationOptions
+            };
             var client = new CosmosClient(
                 accountEndpoint: cosmosEndpoint,
                 tokenCredential: new DefaultAzureCredential());
+                
             var container = client.GetContainer("UserManagement", "DurableDlq");
 
             // logger.LogInformation("CosmosClient created for DLQ");
 
-//             var safeId = Convert.ToHexString(
-//      System.Security.Cryptography.SHA256.HashData(
-//          Encoding.UTF8.GetBytes(dlq.RowKey)
-//      )
-//  );
+            //             var safeId = Convert.ToHexString(
+            //      System.Security.Cryptography.SHA256.HashData(
+            //          Encoding.UTF8.GetBytes(dlq.RowKey)
+            //      )
+            //  );
             var safeId = SanitizeId(dlq.RowKey);
             _logger.LogInformation("DLQ RAW RowKey = {RowKey}", dlq.RowKey);
             // var doc1 = new CosmosDlqMessage
@@ -127,28 +138,30 @@ public class SendToDlqActivity
             //     // ReplayCount = 0,//dlq.ReplayCount,
             //     Status = "Failed"
             // };
-            var doc = new 
+            var doc = new
             {
                 id = safeId,
                 userId = SanitizeId(dlq.UserId) ?? "UNKNOWN",
                 userName = dlq.UserName ?? "UNKNOWN",
                 correlationId = dlq.CorrelationId ?? string.Empty,
-                reason = dlq.Reason ?? string.Empty, 
+                reason = dlq.Reason ?? string.Empty,
                 failedAt = dlq.FailedAt.ToString("o"),
-                status = "Failed"               
+                status = "Failed"
             };
             if (string.IsNullOrWhiteSpace(safeId))
                 throw new Exception("DLQ Cosmos id is empty");
 
             if (string.IsNullOrWhiteSpace(doc.userId))
                 throw new Exception("DLQ Cosmos partition key (userId) is empty");
+
             _logger.LogInformation(
                       "Upserting document - Id: {Id}, UserId: {UserId}, UserName: {UserName}",
                       doc.id, doc.userId, doc.userName);
+
             var response = await container.UpsertItemAsync(
                   doc,
                   new PartitionKey(doc.userId));
-            //             var response = await container.UpsertItemAsync(
+            // var response = await container.UpsertItemAsync(
             //     new
             //     {
             //         id = "test-123",
