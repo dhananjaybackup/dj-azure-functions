@@ -110,17 +110,12 @@ public class UserOrchestrator
         [OrchestrationTrigger] TaskOrchestrationContext context)
     {
         var user = context.GetInput<UserDto>();
-        _logger
-                   .LogInformation(
-                       "UserOrchestrator STARTED | UserId={UserId} | InstanceId={InstanceId}",
-                       user.UserId,
-                       context.InstanceId
-                   );
-        var aiResult = await context.CallActivityAsync<AiResult>(
-            "ProcessUserWithAi",
-            user
-        );
-        if (!aiResult.IsConfident)
+        _logger.LogInformation("UserOrchestrator STARTED | UserId={UserId} | InstanceId={InstanceId}", user.UserId,context.InstanceId);
+        var aiResult = await context.CallActivityAsync<AiResult>("ProcessUserWithAi",user);
+        _logger.LogInformation( "UserOrchestrator AI Result | UserId={UserId} | IsSuccess={IsSuccess} | IsConfident={IsConfident}",
+                user.UserId, aiResult.IsSuccess,aiResult.IsConfident);
+
+        if (!aiResult.IsSuccess || !aiResult.IsConfident)
         {
             await context.CallActivityAsync(
                 "SendToDlqActivity",

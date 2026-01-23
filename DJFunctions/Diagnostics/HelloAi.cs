@@ -53,6 +53,7 @@ namespace DJFunctions.Diagnostics
  */
 // var endpoint = new Uri("https://abhis-mkm7pubf-eastus2.cognitiveservices.azure.com/");
 var endpoint = new Uri(Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT_MS_FOUNDRY"));
+// var deploymentName = "gpt-4o-mini";
 var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME");
 var apiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_KEY__MS_FOUNDRY");
 

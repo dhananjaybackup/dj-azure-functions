@@ -5,6 +5,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Azure.AI.OpenAI;
 using Azure;
+using Azure.Identity;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults()
@@ -12,14 +13,16 @@ var host = new HostBuilder()
     {
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
-         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
+        var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_KEY");
 
         services.AddSingleton(_ =>
-            new AzureOpenAIClient(
+       {
+           return new AzureOpenAIClient(
                 new Uri(endpoint),
-                new AzureKeyCredential(key)
-            ));
+                new DefaultAzureCredential()
+);
+       });
     })
     .ConfigureLogging(logging =>
     {
@@ -27,7 +30,7 @@ var host = new HostBuilder()
         logging.SetMinimumLevel(LogLevel.Information);
     })
     .Build();
-    // 🔥 TEMP SMOKE TEST — REMOVE AFTER SUCCESS
+// 🔥 TEMP SMOKE TEST — REMOVE AFTER SUCCESS
 // await DJFunctions.Diagnostics.CosmosSmokeTest.RunAsync(
 //     host.Services.GetRequiredService<ILoggerFactory>()
 //         .CreateLogger("CosmosSmokeTest"));
