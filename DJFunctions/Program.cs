@@ -14,15 +14,22 @@ var host = new HostBuilder()
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
-        var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_KEY");
+        var key = Environment.GetEnvironmentVariable("FOUNDARY_OPENAI_KEY");
 
+        //         services.AddSingleton(_ =>
+        //        {
+        //            return new AzureOpenAIClient(
+        //                 new Uri(endpoint),
+        //                 new DefaultAzureCredential()
+        // );
+        //        });
         services.AddSingleton(_ =>
-       {
-           return new AzureOpenAIClient(
+        {
+            return new AzureOpenAIClient(
                 new Uri(endpoint),
-                new DefaultAzureCredential()
-);
-       });
+                new AzureKeyCredential(key)
+            );
+        });
     })
     .ConfigureLogging(logging =>
     {

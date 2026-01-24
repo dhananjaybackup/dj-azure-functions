@@ -64,28 +64,27 @@ Output JSON format:
 }
 """;
 
-        var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
         var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME");
         var chatClient = _openAiClient.GetChatClient(deploymentName); // Foundry deployment name
 
-        var client = new AzureOpenAIClient(new Uri(endpoint),
-         new AzureKeyCredential(Environment.GetEnvironmentVariable("FOUNDARY_OPENAI_KEY")));
-
         var messages = new List<ChatMessage>
-        {
-            new SystemChatMessage(systemPrompt),
-            new UserChatMessage(userPrompt)
-        };
+{
+    new SystemChatMessage(systemPrompt),
+    new UserChatMessage(userPrompt)
+};
+
         var options = new ChatCompletionOptions
         {
             MaxOutputTokenCount = 4096,
             Temperature = 0.1f,
             TopP = 1.0f
         };
+
         try
         {
-            var response = await chatClient.CompleteChatAsync(messages);
+            _logger.LogInformation("STARTED CALLING AI | UserId={UserId}", user.UserId);
 
+            var response = await chatClient.CompleteChatAsync(messages);
             var raw = response.Value.Content[0].Text;
 
             _logger.LogInformation(
