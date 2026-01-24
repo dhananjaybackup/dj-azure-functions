@@ -4,6 +4,7 @@ using Azure.AI.OpenAI;
 using OpenAI.Chat;
 using System.Text.Json;
 using Azure;
+using DJFunctions.Models;
 // using OpenAI;
 
 namespace DJFunctions;
@@ -11,112 +12,111 @@ namespace DJFunctions;
 public class ProcessUserWithAi
 {
 
-    private readonly ChatClient _chatClient;
-    private readonly ILogger _logger;
-
     private readonly AzureOpenAIClient _openAiClient;
-    // private readonly ILogger _logger;
+    private readonly ILogger<ProcessUserWithAi> _logger;
 
     public ProcessUserWithAi(
-         AzureOpenAIClient azureClient,
-         ILoggerFactory loggerFactory)
+        AzureOpenAIClient openAiClient,
+        ILogger<ProcessUserWithAi> logger)
     {
-        _chatClient = azureClient.GetChatClient(
-            Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT"));
-
-        _logger = loggerFactory.CreateLogger<ProcessUserWithAi>();
+        _openAiClient = openAiClient;
+        _logger = logger;
     }
+
     [Function("ProcessUserWithAi")]
     public async Task<AiResult> Run(
-        [ActivityTrigger] AiRequest request)
+      [ActivityTrigger] UserDto user)
     {
         _logger.LogInformation(
-            "AI processing started | UserId={UserId} | CorrelationId={CorrelationId}",
-            request.UserId,
-            request.CorrelationId);
+            "AI Processing STARTED | UserId={UserId} | CorrelationId={CorrelationId}",
+            user.UserId, user.CorrelationId);
+        var systemPrompt =
+                    """
+            You are an AI assistant helping with user onboarding decisions.
 
+            Rules:
+            - Analyze the provided user information
+            - Extract structured data
+            - Decide if onboarding can be auto-approved
+            - Be conservative: if unsure, mark as NOT confident
+            - Respond ONLY in valid JSON
+            """;
+        var userPrompt =
+$$"""
+                User onboarding request:
+
+                UserId: {user.UserId}
+                Name: {user.UserName}
+                Email: {user.Email}
+                CorrelationId: {user.CorrelationId}
+
+                Blob reference: {user.BlobUrl}
+
+                Output JSON format:
+                {
+                "isSuccess": true,
+                "isConfident": true,
+                "reason": "short explanation",
+                "extractedData": {
+                    "emailDomain": "",
+                    "riskLevel": "",
+                    "decision": ""
+                }
+                }
+                """;
+
+        var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME");
+        var chatClient = _openAiClient.GetChatClient(deploymentName); // Foundry deployment name
+        var messages = new List<ChatMessage>
+        {
+            new SystemChatMessage(systemPrompt),
+            new UserChatMessage(userPrompt)
+        };
+        var options = new ChatCompletionOptions
+        {
+            MaxOutputTokenCount = 4096,
+            Temperature = 0.1f,
+            TopP = 1.0f
+        };
         try
         {
-            var messages = new List<ChatMessage>
-            {
-                new SystemChatMessage(
-                    "You are an onboarding AI. You MUST return valid JSON only."),
-                new UserChatMessage(BuildPrompt(request))
-            };
+            var response = await chatClient.CompleteChatAsync(messages);
 
-            var options = new ChatCompletionOptions
-            {
-                MaxOutputTokenCount = 4096,
-                Temperature = 0.1f,
-                TopP = 1.0f
-            };
-
-            ChatCompletion completion =
-                await _chatClient.CompleteChatAsync(messages, options);
-
-            var content = completion.Content[0].Text;
+            var raw = response.Value.Content[0].Text;
 
             _logger.LogInformation(
-                "AI raw response | UserId={UserId}: {Response}",
-                request.UserId,
-                content);
+                "AI RAW RESPONSE | UserId={UserId} | Response={Response}",
+                user.UserId, raw);
 
-            var result = JsonSerializer.Deserialize<AiResult>(
-                content,
-                new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
+            var aiResult = JsonSerializer.Deserialize<AiResult>(
+                raw,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            if (result == null)
+            if (aiResult == null)
             {
-                throw new Exception("AI returned invalid JSON");
+                return new AiResult
+                {
+                    IsSuccess = false,
+                    IsConfident = false,
+                    Reason = "AI returned empty or invalid response"
+                };
             }
 
-            result.IsSuccess = true;
-            result.ExtractedData ??= new Dictionary<string, string>();
-
-            return result;
+            return aiResult;
         }
         catch (Exception ex)
         {
             _logger.LogError(
                 ex,
-                "AI processing failed | UserId={UserId} | CorrelationId={CorrelationId}",
-                request.UserId,
-                request.CorrelationId);
+                "AI Processing FAILED | UserId={UserId}",
+                user.UserId);
 
             return new AiResult
             {
                 IsSuccess = false,
                 IsConfident = false,
-                Reason = ex.Message,
-                ExtractedData = new Dictionary<string, string>()
+                Reason = "AI exception: " + ex.Message
             };
         }
-    }
-    private static string BuildPrompt(AiRequest request)
-    {
-        return $$"""
-        Analyze the following user onboarding data.
-
-        UserName: {request.UserName}
-        Email: {request.Email}
-        Notes: {request.Notes}
-
-        Decide onboarding risk and next action.
-
-        Return ONLY valid JSON in this exact format:
-        {
-          "IsSuccess": true,
-          "IsConfident": true | false,
-          "Reason": "Short explanation",
-          "ExtractedData": {
-            "RiskLevel": "Low | Medium | High",
-            "SuggestedAction": "AutoApprove | ManualReview | Reject",
-            "EmailDomainType": "Corporate | Free | Disposable"
-          }
-        }
-        """;
     }
 }
