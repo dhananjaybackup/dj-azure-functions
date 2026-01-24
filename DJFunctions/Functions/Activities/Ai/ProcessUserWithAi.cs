@@ -41,31 +41,36 @@ public class ProcessUserWithAi
             - Be conservative: if unsure, mark as NOT confident
             - Respond ONLY in valid JSON
             """;
-        var userPrompt = $@"
+        var userPrompt = $$"""
 User onboarding request:
 
-UserId: {user.UserId}
-Name: {user.UserName}
-Email: {user.Email}
-CorrelationId: {user.CorrelationId}
+UserId: {{user.UserId}}
+Name: {{user.UserName}}
+Email: {{user.Email}}
+CorrelationId: {{user.CorrelationId}}
 
-Blob reference: {user.BlobUrl}
+Blob reference: {{user.BlobUrl}}
 
 Output JSON format:
-{{
-  ""isSuccess"": true|false,
-  ""isConfident"": true|false,
-  ""reason"": ""short explanation"",
-  ""extractedData"": {{
-     ""emailDomain"": """",
-     ""riskLevel"": """",
-     ""decision"": """"
-  }}
-}}
-"; ;
+{
+  "isSuccess": true|false,
+  "isConfident": true|false,
+  "reason": "short explanation",
+  "extractedData": {
+     "emailDomain": "",
+     "riskLevel": "",
+     "decision": ""
+  }
+}
+""";
 
+        var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
         var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME");
         var chatClient = _openAiClient.GetChatClient(deploymentName); // Foundry deployment name
+
+        var client = new AzureOpenAIClient(new Uri(endpoint),
+         new AzureKeyCredential(Environment.GetEnvironmentVariable("FOUNDARY_OPENAI_KEY")));
+
         var messages = new List<ChatMessage>
         {
             new SystemChatMessage(systemPrompt),
